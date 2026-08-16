@@ -12,20 +12,24 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
+import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-826$9gpgvh)y#3bv*occ(_#z#24)q%*g==)tn2m1)-jtnvb(%b'
+SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-826$9gpgvh)y#3bv*occ(_#z#24)q%*g==)tn2m1)-jtnvb(%b')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 
 
 # Application definition
@@ -37,6 +41,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+	# Third-party
+	'rest_framework',
+	'channels',
+	# Local
+	'game_api',
 ]
 
 MIDDLEWARE = [
@@ -67,16 +76,22 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
 
+CHANNEL_LAYERS = {
+	'default': {
+		'BACKEND': 'channels.layers.InMemoryChannelLayer',
+	}
+}
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': env.db(
+        'DATABASE_URL',
+        #default=postgres://USER:PASSWORD@HOST:PORT/NAME
+	)
 }
 
 
