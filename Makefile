@@ -37,7 +37,7 @@ migrate:
 	$(COMPOSE) exec backend python manage.py migrate
 
 makemigrations:
-	$(COMPOSE) backend python manage.py makemigrations
+	$(COMPOSE) exec backend python manage.py makemigrations
 
 superuser:
-	$(COMPOSE) backend python manage.py createsuperuser
+	$(COMPOSE) exec backend python manage.py createsuperuser
