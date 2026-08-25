@@ -13,8 +13,8 @@ def build_standard_deck() -> list[Card]:
 			cards.append(Card(color=color, card_type=CardType.NUMBER, value=value))
 			cards.append(Card(color=color, card_type=CardType.NUMBER, value=value))
 		for card_type in (CardType.SKIP, CardType.REVERSE, CardType.DRAW_TWO):
-			cards.append(Card(Color=color, card_type=card_type))
-			cards.append(Card(Color=color, card_type=card_type))
+			cards.append(Card(color=color, card_type=card_type))
+			cards.append(Card(color=color, card_type=card_type))
 	for _ in range(4):
 		cards.append(Card(color=Color.WILD, card_type=CardType.WILD))
 		cards.append(Card(color=Color.WILD, card_type=CardType.WILD_DRAW_FOUR))
