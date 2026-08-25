@@ -7,7 +7,7 @@ from .state import GameState
 #This is just an example of a modifier, a rule which makes playing a seven card exchange hands with another player
 @register_modifier("seven_swap")
 def seven_swap(state: GameState, card: Card, player_id: str) -> None:
-	if card.card_type != CardType.NUMBER or card.value != 7
+	if card.card_type != CardType.NUMBER or card.value != 7:
 		return
 
 	idx = next(i for i, p in enumerate(state.players) if p.player_id == player_id)
