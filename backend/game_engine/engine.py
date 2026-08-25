@@ -9,8 +9,10 @@ from .deck import STANDARD_COLORS, Deck
 from .state import Direction, GameSettings, GameState, Player
 
 class IllegalMove(Exception):
+	"""Raised when a requested move isn't legal given the current state."""
 
 class GameOver(Exception):
+	"""Raised when an action is attempted after the game has already been won."""
 
 ModifierFn = Callable[[GameState, Card, str], None]
 MODIFIER_REGISTRY: dict[str, ModifierFn] = {}
