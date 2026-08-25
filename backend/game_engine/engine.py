@@ -70,6 +70,7 @@ def _apply_standard_effects(state: GameState, card: Card) -> None:
 			_advance_turn(state)
 		else:
 			state.direction = (Direction.COUNTER_CLOCKWISE if state.direction == Direction.CLOCKWISE else Direction.CLOCKWISE)
+			_advance_turn(state)
 	elif card.card_type == CardType.DRAW_TWO:
 		_advance_turn(state)
 		victim = state.players[state.current_player_index]

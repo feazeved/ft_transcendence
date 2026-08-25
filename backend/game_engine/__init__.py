@@ -1,6 +1,6 @@
 from .cards import Card, CardType, Color
 from .deck import Deck, build_standard_deck
-from .engine import (GameOver, IllegalMove, draw_card, pass_turn, play_card, start_game)
+from .engine import GameOver, IllegalMove, draw_card, pass_turn, play_card, start_game
 from .state import Direction, GameSettings, GameState, Player
 from . import modifiers
 
