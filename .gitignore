@@ -234,6 +234,7 @@ __marimo__/
 
 # pnpm
 .pnpm-store/
+pnpm-lock.json
 
 package-lock.json
 
