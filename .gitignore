@@ -235,6 +235,8 @@ __marimo__/
 # pnpm
 .pnpm-store/
 
+package-lock.json
+
 # Logs
 logs
 *.log
