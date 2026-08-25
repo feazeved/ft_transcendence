@@ -158,6 +158,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+!.env.example
 
 # Secrets / credentials that shouldn't live next to .env
 *.pem
@@ -228,3 +229,36 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Frontend gitignore ↓
+
+# pnpm
+.pnpm-store/
+pnpm-lock.json
+
+package-lock.json
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

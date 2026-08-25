@@ -1,0 +1,88 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - certs:/etc/nginx/certs
+      - static_data:/usr/share/nginx/static:ro
+      - media_data:/usr/share/nginx/media:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - transcendence
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "pnpm install && pnpm dev --host 0.0.0.0 --port 5173"
+    networks:
+      - transcendence
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - transcendence
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - transcendence
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - transcendence
+
+networks:
+  transcendence:
+    driver: bridge
+
+volumes:
+  frontend_node_modules:
+  postgres_data:
+  redis_data:
+  static_data:
+  media_data:
+  certs:
