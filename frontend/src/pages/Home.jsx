@@ -1,4 +1,5 @@
 function Home() {
+	//className is the convention for the css in tailwind, same as class in css. 
 	return (
 		<main className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center">
 			<h1 className="text-6xl font-bold">
