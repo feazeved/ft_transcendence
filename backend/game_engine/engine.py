@@ -1,3 +1,5 @@
+#This is where in implement the engine of the game, where the plays actually happen (draw, play, win condition, etc)
+
 import copy
 import random
 from typing import Callable
