@@ -27,4 +27,5 @@ class Card:
 			return f"{self.color.value} {self.value}"
 		if self.color == Color.WILD:
 			return self.card_type.value.replace("_", " ")
+
 		return f"{self.color.value} {self.card_type.value.replace("_", " ")}"

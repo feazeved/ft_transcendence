@@ -6,6 +6,7 @@ STANDARD_COLORS = (Color.RED, Color.YELLOW, Color.GREEN, Color.BLUE)
 
 def build_standard_deck() -> list[Card]:
 	cards: list[Card] = []
+
 	for color in STANDARD_COLORS:
 		cards.append(Card(color=color, card_type=CardType.NUMBER, value=0))
 		for value in range(1, 10):
@@ -17,6 +18,7 @@ def build_standard_deck() -> list[Card]:
 	for _ in range(4):
 		cards.append(Card(color=Color.WILD, card_type=CardType.WILD))
 		cards.append(Card(color=Color.WILD, card_type=CardType.WILD_DRAW_FOUR))
+
 	return cards
 
 class Deck:
@@ -27,15 +29,18 @@ class Deck:
 
 	def _refill(self) -> None:
 		new_cards = build_standard_deck()
+
 		self._rng.shuffle(new_cards)
 		self.draw_pile.extend(new_cards)
 
 	def draw(self, count: int = 1) -> list[Card]:
 		drawn = []
+
 		for _ in range(count):
 			if not self.draw_pile:
 				self._refill()
 			drawn.append(self.draw_pile.pop())
+
 		return drawn
 
 	def return_and_reshuffle(self, cards: list[Card]) -> None:
