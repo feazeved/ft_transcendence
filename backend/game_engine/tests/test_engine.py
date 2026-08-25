@@ -63,8 +63,6 @@ def test_start_game_never_leaves_wild_draw_four_as_top_card():
 		assert state.top_card.card_type != CardType.WILD_DRAW_FOUR
 
 
-# ---- legal play ----
-
 def test_wild_requires_chosen_color():
 	state = start_game(make_players(2), rng=random.Random(3))
 	current = state.players[state.current_player_index]
