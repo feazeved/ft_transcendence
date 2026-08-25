@@ -13,9 +13,7 @@ if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
 		-newkey rsa:2048 \
 		-keyout "$KEY_FILE" \
 		-out "$CERT_FILE" \
-		-subj "/C=PT/ST=Porto/L=Porto/O=42/OU=ft_transcendence/CN=localhost"
-	echo "[gen-certs] Certificate writtne in $CERT_FILE"
-else
+	echo "[gen-certs] Certificate written in $CERT_FILE"
 	echo "[gen-certs] Existing certificate found, reusing it."
 fi
 
