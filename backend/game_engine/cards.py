@@ -1,4 +1,4 @@
-from dataclasses import dataclasse
+from dataclasses import dataclass
 from enum import Enum
 
 class Color(Enum):
