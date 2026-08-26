@@ -1,14 +1,20 @@
 import { Outlet } from "react-router"
 import Header from "./NavBar.jsx"
 import Footer from "./Footer.jsx"
+import moon from "../assets/bg.png"
 
 function Layout() {
 	return (
-		<>
+		<div
+			className="min-h-screen flex flex-col bg-[#141414] bg-cover bg-center bg-no-repeat"
+			style={{ backgroundImage: `url(${moon})` }}
+		>
 			<Header />
-			<Outlet />
+			<main className="flex-1 flex flex-col">
+				<Outlet />
+			</main>
 			<Footer />
-		</>
+		</div>
 	)
 }
 

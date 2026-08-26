@@ -41,3 +41,22 @@
   --color-destructive-foreground: #f7eef5;
   --color-success: #4fa87f;
 }
+
+.navbar-rainbow-line {
+  background-image: linear-gradient(
+    to right,
+    #ef4444, #eab308, #22c55e, #3b82f6,
+    #ef4444, #eab308, #22c55e, #3b82f6
+  );
+  background-size: 200% 100%;
+  animation: rainbow-scroll 6s linear infinite;
+}
+
+@keyframes rainbow-scroll {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

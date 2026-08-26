@@ -1,11 +1,8 @@
-<svg viewBox="-1.125 -1.125 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" id="Community--Streamline-Iconoir" height="36" width="36">
-  <desc>
-    Community Streamline Icon: https://streamlinehq.com
-  </desc>
-  <path d="M9.84375 25.3125v-1.40625c0 -3.88321875 3.148003125 -7.03125 7.03125 -7.03125v0c3.88321875 0 7.03125 3.14803125 7.03125 7.03125v1.40625" stroke="#cc8db1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25"></path>
-  <path d="M1.40625 25.3125v-1.40625c0 -2.330015625 1.8888046875000002 -4.21875 4.21875 -4.21875v0" stroke="#cc8db1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25"></path>
-  <path d="M32.34375 25.3125v-1.40625c0 -2.330015625 -1.8887343749999999 -4.21875 -4.21875 -4.21875v0" stroke="#cc8db1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25"></path>
-  <path d="M16.875 16.875c2.330015625 0 4.21875 -1.8887343749999999 4.21875 -4.21875 0 -2.3299453125 -1.8887343749999999 -4.21875 -4.21875 -4.21875S12.65625 10.326304687499999 12.65625 12.65625c0 2.330015625 1.8887343749999999 4.21875 4.21875 4.21875Z" stroke="#cc8db1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25"></path>
-  <path d="M5.625 19.6875c1.5533015625000002 0 2.8125 -1.25915625 2.8125 -2.8125s-1.2591984374999998 -2.8125 -2.8125 -2.8125 -2.8125 1.25915625 -2.8125 2.8125 1.2591984374999998 2.8125 2.8125 2.8125Z" stroke="#cc8db1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25"></path>
-  <path d="M28.125 19.6875c1.55334375 0 2.8125 -1.25915625 2.8125 -2.8125s-1.25915625 -2.8125 -2.8125 -2.8125 -2.8125 1.25915625 -2.8125 2.8125 1.25915625 2.8125 2.8125 2.8125Z" stroke="#cc8db1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25"></path>
+<svg width="336" height="336" viewBox="0 0 336 336" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M102.375 246.75V233.625C102.375 197.382 131.756 168 168 168C204.243 168 233.625 197.382 233.625 233.625V246.75" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M23.625 246.75V233.625C23.625 211.878 41.2538 194.25 63 194.25" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M312.375 246.75V233.625C312.375 211.878 294.747 194.25 273 194.25" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M168 168C189.747 168 207.375 150.372 207.375 128.625C207.375 106.879 189.747 89.25 168 89.25C146.253 89.25 128.625 106.879 128.625 128.625C128.625 150.372 146.253 168 168 168Z" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M63 194.25C77.4975 194.25 89.25 182.498 89.25 168C89.25 153.502 77.4975 141.75 63 141.75C48.5025 141.75 36.75 153.502 36.75 168C36.75 182.498 48.5025 194.25 63 194.25Z" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M273 194.25C287.498 194.25 299.25 182.498 299.25 168C299.25 153.502 287.498 141.75 273 141.75C258.502 141.75 246.75 153.502 246.75 168C246.75 182.498 258.502 194.25 273 194.25Z" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
