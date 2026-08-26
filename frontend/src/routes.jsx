@@ -8,6 +8,9 @@ const Home = lazy(() => import('@/pages/Home.jsx'))
 const Test = lazy(() => import('@/pages/Test.jsx'))
 const Tournaments = lazy(() => import('@/pages/Tournaments.jsx'))
 const Profile = lazy(() => import('@/pages/Profile.jsx'))
+const Login = lazy(() => import('@/pages/Login.jsx'))
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy.jsx'))
+const TermsOfService = lazy(() => import('@/pages/TermsOfService.jsx'))
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'))
 
 function AppRoutes() {
@@ -21,8 +24,11 @@ function AppRoutes() {
 					<Route path="/test" element={<Test />} />
 					<Route path="/tournament" element={<Tournaments />} />
 					<Route path="/profile" element={<Profile />} />
+					<Route path="/login" element={<Login />} />
+					<Route path="/privacy-policy" element={<PrivacyPolicy />} />
+					<Route path="/terms-of-service" element={<TermsOfService />} />
+					<Route path="*" element={<NotFound />} />
 				</Route>
-				<Route path="*" element={<NotFound />} />
 			</Routes>
 		</Suspense>
 	)
