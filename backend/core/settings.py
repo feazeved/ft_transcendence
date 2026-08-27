@@ -31,6 +31,11 @@ DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 
+# In development, accept any Host header (LAN IP, container name, tunnel, etc.)
+# so the app is reachable however you browse to it.
+if DEBUG and '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('*')
+
 
 # Application definition
 
@@ -80,7 +85,10 @@ ASGI_APPLICATION = 'core.asgi.application'
 
 CHANNEL_LAYERS = {
 	'default': {
-		'BACKEND': 'channels.layers.InMemoryChannelLayer',
+		'BACKEND': 'channels_redis.core.RedisChannelLayer',
+		'CONFIG': {
+			'hosts': [env('REDIS_URL', default='redis://redis:6379/0')],
+		},
 	}
 }
 
@@ -130,6 +138,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 # Email
