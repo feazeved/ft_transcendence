@@ -27,7 +27,7 @@ class Deck:
 		
 		if draw_pile is not None:
 			self.draw_pile = draw_pile
-		else
+		else:
 			self.draw_pile = []
 			self._refill()
 
