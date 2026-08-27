@@ -3,13 +3,17 @@ import random
 import pytest
 
 from game_engine.cards import Card, CardType, Color
+from game_engine.deck import STANDARD_COLORS as STANDARD_COLORS_TUPLE
 from game_engine.deck import Deck, build_standard_deck
-from game_engine.engine import GameOver, IllegalMove, draw_card, pass_turn, play_card, start_game
-from game_engine.state import Direction, GameSettings
+from game_engine.engine import GameOver, IllegalMove, _resolve_opening_card, draw_card, pass_turn, play_card, start_game
+from game_engine.state import Direction, GameSettings, GameState, Player
 
 
 def make_players(n: int) -> list[tuple[str, str]]:
 	return [(f"p{i}", f"Player {i}") for i in range(n)]
+
+
+FILLER = Card(color=Color.RED, card_type=CardType.NUMBER, value=1)
 
 
 def test_standard_deck_has_108_cards():
@@ -57,10 +61,45 @@ def test_start_game_is_deterministic_with_seeded_rng():
 	assert a.top_card == b.top_card
 
 
-def test_start_game_never_leaves_wild_draw_four_as_top_card():
+def test_opening_card_is_always_a_number_card():
 	for seed in range(50):
 		state = start_game(make_players(3), rng=random.Random(seed))
-		assert state.top_card.card_type != CardType.WILD_DRAW_FOUR
+		assert state.top_card.card_type == CardType.NUMBER
+
+
+def test_resolve_opening_card_redraws_past_special_cards():
+	number_card = Card(color=Color.BLUE, card_type=CardType.NUMBER, value=5)
+	skip_card = Card(color=Color.RED, card_type=CardType.SKIP)
+	deck = Deck(draw_pile=[number_card, skip_card])
+
+	state = GameState(
+		players=[Player(player_id="p0", name="P0"), Player(player_id="p1", name="P1")],
+		deck=deck,
+		top_card=deck.draw(1)[0],
+		current_color=Color.RED,
+		current_player_index=0,
+		direction=Direction.CLOCKWISE,
+		settings=GameSettings(),
+	)
+	_resolve_opening_card(state)
+
+	assert state.top_card == number_card
+	assert state.current_color == Color.BLUE
+	assert state.current_player_index == 0
+	assert skip_card in state.deck.draw_pile
+	assert len(state.deck) == 1
+
+
+def test_no_cards_lost_resolving_the_opening_card():
+	for seed in range(30):
+		n_players = 2 + (seed % 5)
+		state = start_game(make_players(n_players), rng=random.Random(seed))
+		total = (
+			sum(len(p.hand) for p in state.players)
+			+ 1
+			+ len(state.deck)
+		)
+		assert total == 108
 
 
 def test_wild_requires_chosen_color():
@@ -89,11 +128,6 @@ def _guaranteed_illegal_card(state) -> Card:
 	)
 	value = 0 if off_type == CardType.NUMBER else None
 	return Card(color=off_color, card_type=off_type, value=value)
-
-
-from game_engine.deck import STANDARD_COLORS as STANDARD_COLORS_TUPLE
-
-FILLER = Card(color=Color.RED, card_type=CardType.NUMBER, value=1)
 
 
 def test_skip_skips_next_player():
@@ -193,8 +227,8 @@ def test_seven_swap_enabled_swaps_hands():
 
 def test_state_is_never_mutated_in_place():
 	state = start_game(make_players(2), rng=random.Random(29))
-	original_hand = list(state.players[state.current_player_index].hand)
 	current = state.players[state.current_player_index]
+	original_hand = list(current.hand)
 	legal = next((c for c in current.hand if _would_be_legal(state, c)), None)
 	if legal is None:
 		pytest.skip("seeded hand happened to have no legal card")
