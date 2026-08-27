@@ -22,10 +22,14 @@ def build_standard_deck() -> list[Card]:
 	return cards
 
 class Deck:
-	def __init__(self, rng: random.Random | None = None):
+	def __init__(self, rng: random.Random | None = None, draw_pile: list[Card] | None = None):
 		self._rng = rng or random.Random()
-		self.draw_pile: list[Card] = []
-		self._refill()
+		
+		if draw_pile is not None:
+			self.draw_pile = draw_pile
+		else
+			self.draw_pile = []
+			self._refill()
 
 	def _refill(self) -> None:
 		new_cards = build_standard_deck()
