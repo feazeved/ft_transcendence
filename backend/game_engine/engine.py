@@ -17,6 +17,15 @@ class GameOver(Exception):
 ModifierFn = Callable[[GameState, Card, str], None]
 MODIFIER_REGISTRY: dict[str, ModifierFn] = {}
 
+LegalityHookFn = Callable[[GameState, Card], "bool | None"]
+LEGALITY_HOOKS: dict[str, LegalityHookFn] = {}
+
+PlayHookFn = Callable[[GameState, Card, str], bool]
+PLAY_HOOKS: dict[str, PlayHookFn] = {}
+
+DrawHookFn = Callable[[GameState, str], bool]
+DRAW_HOOKS: dict[str, DrawHookFn] = {}
+
 def _run_modifiers(state: GameState, card: Card, player_id: str) -> None:
 	for name in state.settings.enabled_modifiers:
 		modifier = MODIFIER_REGISTRY.get(name)
@@ -24,6 +33,13 @@ def _run_modifiers(state: GameState, card: Card, player_id: str) -> None:
 			modifier(state, card, player_id)
 
 def _is_legal_play(state: GameState, card: Card) -> bool:
+	for name in state.settings.enabled_modifiers:
+		hook = LEGALITY_HOOKS.get(name)
+		if hook is not None:
+			result = hook(state, card)
+			if result is not None:
+				return result
+
 	if card.card_type in (CardType.WILD, CardType.WILD_DRAW_FOUR):
 		return True
 	if card.color == state.current_color:
@@ -85,17 +101,41 @@ def _apply_standard_effects(state: GameState, card: Card) -> None:
 		_advance_turn(state)
 
 def _resolve_opening_card(state: GameState) -> None:
-	while state.top_card.card_type == CardType.WILD_DRAW_FOUR:
-		state.deck.return_and_reshuffle([state.top_card])
+	rejected: list[Card] = []
+
+	while state.top_card.card_type != CardType.NUMBER:
+		rejected.append(state.top_card)
 		state.top_card = state.deck.draw(1)[0]
+	if rejected:
+		state.deck.return_and_reshuffle(rejected)
 
-	state.current_color = (state.deck._rng.choice(STANDARD_COLORS) if state.top_card.card_type == CardType.WILD else state.top_card.color)
-
-	_apply_standard_effects(state, state.top_card)
+	state.current_color = state.top_card.color
+	state.current_player_index = 0
 
 def register_modifier(name: str):
 	def decorator(fn: ModifierFn) -> ModifierFn:
 		MODIFIER_REGISTRY[name] = fn
+		return fn
+
+	return decorator
+
+def register_legality_hook(name: str):
+	def decorator(fn: LegalityHookFn) -> LegalityHookFn:
+		LEGALITY_HOOKS[name] = fn
+		return fn
+
+	return decorator
+
+def register_play_hook(name: str):
+	def decorator(fn: PlayHookFn) -> PlayHookFn:
+		PLAY_HOOKS[name] = fn
+		return fn
+
+	return decorator
+
+def register_draw_hook(name: str):
+	def decorator(fn: DrawHookFn) -> DrawHookFn:
+		DRAW_HOOKS[name] = fn
 		return fn
 
 	return decorator
@@ -106,7 +146,7 @@ def start_game(players: list[tuple[str, str]], *, settings: GameSettings | None 
 
 	deck = Deck(rng=rng)
 	dealt_players = [Player(player_id=pid, name=name, hand=deck.draw(hand_size)) for pid, name in players]
-	state = GameState(players=dealt_players, deck=deck, top_card=deck.draw(1)[0], current_color=Color.RED, current_player_index=1, direction=Direction.CLOCKWISE, settings=settings or GameSettings())
+	state = GameState(players=dealt_players, deck=deck, top_card=deck.draw(1)[0], current_color=Color.RED, current_player_index=0, direction=Direction.CLOCKWISE, settings=settings or GameSettings())
 
 	_resolve_opening_card(state)
 	return state
@@ -135,7 +175,15 @@ def play_card(state: GameState, player_id: str, card: Card, *, chosen_color: Col
 		new_state.winner_id = player_id
 		return new_state
 
-	_apply_standard_effects(new_state, card)
+	handled = False
+	for name in new_state.settings.enabled_modifiers:
+		hook = PLAY_HOOKS.get(name)
+		if hook is not None and hook(new_state, card, player_id):
+			handled = True
+			break
+	if not handled:
+		_apply_standard_effects(new_state, card)
+
 	_run_modifiers(new_state, card, player_id)
 	return new_state
 
@@ -144,6 +192,11 @@ def draw_card(state: GameState, player_id: str) -> GameState:
 
 	_require_game_not_over(new_state)
 	_require_players_turn(new_state, player_id)
+
+	for name in new_state.settings.enabled_modifiers:
+		hook = DRAW_HOOKS.get(name)
+		if hook is not None and hook(new_state, player_id):
+			return new_state
 
 	if new_state.has_drawn_this_turn:
 		raise IllegalMove("Already drew this turn, play a card or pass")
