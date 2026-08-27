@@ -37,8 +37,6 @@ function Login() {
       const data = await response.json();
       localStorage.setItem("token", data.token);
       console.log("Login successful:", data);
-      navigate("/");
-      window.location.reload();
     } catch (err) {
       console.error("Error during login:", err.message);
       setError("Login failed. Please check your connection and try again.");
