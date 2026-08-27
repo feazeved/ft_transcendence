@@ -267,12 +267,9 @@ dist-ssr
 # Agent / local tooling
 .scratch/
 .claude/settings.local.json
-CONTEXT.local.md
 
 # Local scratch / notes
 scratch/
-*.local.md
-TODO.local
 
 # Build & coverage output not covered above
 frontend/coverage/
