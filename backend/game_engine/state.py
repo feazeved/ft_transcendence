@@ -32,3 +32,4 @@ class GameState:
 	settings: GameSettings
 	has_drawn_this_turn: bool = False
 	winner_id: str | None = None
+	modifier_state: dict = field(default_factory=dict)
