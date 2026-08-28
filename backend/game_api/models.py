@@ -1,6 +1,13 @@
 import uuid
 
+from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
+
+
+def avatar_upload_to(instance, filename):
+    ext = filename.rsplit('.', 1)[-1].lower()
+    return f'avatars/{instance.public_id}.{ext}'
 
 
 # --- Enums -------------------------------------------------------------
@@ -58,7 +65,12 @@ class User(models.Model):
     email = models.EmailField(unique=True)
     password_hash = models.TextField(blank=True, null=True)
     display_name = models.CharField(max_length=40, blank=True)
-    avatar_url = models.URLField(blank=True, null=True)
+    avatar = models.ImageField(
+        upload_to=avatar_upload_to,
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg'])],
+    )
     oauth_provider = models.CharField(max_length=20, blank=True, null=True)
     oauth_id = models.TextField(blank=True, null=True)
     totp_secret_encrypted = models.BinaryField(blank=True, null=True)
@@ -67,6 +79,15 @@ class User(models.Model):
     accepted_privacy_at = models.DateTimeField(blank=True, null=True)
     last_seen_at = models.DateTimeField(blank=True, null=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+
+    DEFAULT_AVATAR_URL = f'{settings.STATIC_URL}avatars/default.png'
+
+    @property
+    def avatar_url(self):
+        """Uploaded avatar URL, or the site default if the user has not set one."""
+        if self.avatar:
+            return self.avatar.url
+        return self.DEFAULT_AVATAR_URL
 
     def __str__(self):
         return self.username

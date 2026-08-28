@@ -5,6 +5,7 @@ channels_redis==4.3.0
 django-environ==0.14.0
 djangorestframework==3.18.0
 msgpack==1.2.1
+Pillow==11.3.0
 psycopg2-binary==2.9.12
 redis==8.1.0
 sqlparse==0.5.5
