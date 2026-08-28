@@ -79,7 +79,7 @@ const Modal = ({ open = true, onClose, title, children, className = "" }) => {
 				aria-modal="true"
 				aria-labelledby={title ? titleId : undefined}
 				tabIndex={-1}
-				className={`relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10 bg-black text-white outline-none
+				className={`relative z-10 w-fit overflow-y-auto rounded-2xl border border-white/10 bg-black text-white outline-none
 					shadow-[-4px_-4px_20px_0_#E02130,4px_-4px_20px_0_#FAB243,4px_4px_20px_0_#169A4F,-4px_4px_20px_0_#0077B9] ${className}`}
 			>
 				<div className="sticky top-0 flex items-center justify-between gap-4 border-b border-white/10 bg-black px-6 py-4">
