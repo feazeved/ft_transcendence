@@ -21,5 +21,19 @@ export default defineConfig({
 		hmr: {
 			clientPort: 443,
 		},
+		// Native `npm run dev` (no nginx) needs somewhere to send `/api` and `/ws`.
+		// Point these at a backend you run yourself, e.g. `python manage.py runserver 8000`.
+		// Override the target with VITE_BACKEND_URL when the backend lives elsewhere.
+		proxy: {
+			'/api': {
+				target: process.env.VITE_BACKEND_URL || 'http://localhost:8000',
+				changeOrigin: true,
+			},
+			'/ws': {
+				target: process.env.VITE_BACKEND_URL || 'http://localhost:8000',
+				changeOrigin: true,
+				ws: true,
+			},
+		},
 	},
 })

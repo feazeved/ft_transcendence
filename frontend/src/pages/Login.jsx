@@ -1,45 +1,26 @@
 import { useState } from "react";
-import { Link } from "react-router";
-import eyeClose from "../assets/eye-closed.svg"
-import eyeOpen from "../assets/eye-open.svg"
+import { Link, useNavigate } from "react-router";
+import PasswordInput from "../components/PasswordInput";
+import { api } from "@/lib/api.js";
 import ft from "../assets/42.svg"
 
 function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch("http://localhost:3000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      localStorage.setItem("token", data.token);
-      console.log("Login successful:", data);
+      const data = await api.post("/auth/login/", { email, password });
+      if (data?.token) localStorage.setItem("token", data.token);
+      navigate("/");
     } catch (err) {
       console.error("Error during login:", err.message);
-      setError("Login failed. Please check your connection and try again.");
+      setError("Login failed. Please check your credentials and try again.");
     }
   };
 
@@ -47,66 +28,44 @@ function Login() {
 		<>
 		<section className="flex-1 text-white flex justify-center items-center">
 	  <div
-	    className="lg:backdrop-blur-lg w-[100vw] max-w-sm min-w-[500px] p-4 rounded-xl shadow-lg shadow-black  border-2 border-transparent"
+	    className="lg:backdrop-blur-lg w-screen max-w-sm min-w-125 p-4 rounded-xl shadow-lg shadow-black  border-2 border-transparent"
 	  >
-        <h1 className="">
+        <h1 className="text-xl text-center tracking-wide">
           Welcome back
         </h1>
         <div className="flex flex-col ">
-          <form action="POST">
-            <div className="flex flex-col gap-5 my-3">
-              <div className="flex justify-between items-center gap-3">
+          <form onSubmit={handleSubmit}>
+            <div className="flex flex-col my-3">
+              <div className="flex flex-col p-3">
+                <p className="">Email</p>
                 <input
                   type="email"
-                  placeholder="email"
+                  placeholder="player1@gmail.com"
                   name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="outline-none rounded-xl p-3 w-full"
+                  className="outline-none rounded-xl py-3 w-full"
                 />
                 <div className="w-6"></div>
               </div>
-
-              <div className="flex justify-between items-center gap-3">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="*********"
+              <div className="flex flex-col p-3">
+                <PasswordInput
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="outline-none rounded-xl p-3 w-full"
                 />
-                <span
-                  onClick={togglePasswordVisibility}
-                  className="cursor-pointer"
-                >
-                  {showPassword ? (
-                    <img
-                      src={eyeOpen}
-                      alt="Show password"
-                      className="w-6"
-                    />
-                  ) : (
-                    <img
-                      src={eyeClose}
-                      alt="Hide password"
-                      className="w-6"
-                    />
-                  )}
-                </span>
               </div>
+
             </div>
             <button
-              onClick={handleSubmit}
+              type="submit"
               className="block w-full m-auto bg-black px-6 py-2 rounded-sm text-2xl mb-5 cursor-pointer
 			  hover:shadow-[-4px_-4px_10px_0_#ef4444,4px_-4px_10px_0_#facc15,4px_4px_10px_0_#22c55e,-4px_4px_10px_0_#3b82f6] hover:scale-102"
             >
               Login with us
             </button>
             {error && (
-              <p className="bg-red-600 w-fit p-4 rounded-xl mt-5">{error}</p>
+              <p className="bg-red-600 w-fit p-4 rounded-xl mb-4">{error}</p>
             )}
           </form>
         </div>
@@ -129,17 +88,17 @@ function Login() {
 				className="flex-1 inline-flex items-center justify-center gap-2 bg-white text-[#3c4043] border border-[#747775] rounded h-10 px-4 font-medium text-sm
 				hover:shadow-[-4px_-4px_10px_0_#ef4444,4px_-4px_10px_0_#facc15,4px_4px_10px_0_#22c55e,-4px_4px_10px_0_#3b82f6] hover:scale-105 cursor-pointer"
 			>
-				<img src={ft} alt="forty two logo svg" className="w-[18px] h-[18px]" />
+				<img src={ft} alt="forty two logo svg" className="w-4.5 h-4.5" />
 				Continue with 42
 			</button>
 		</div>
         <p className="mb-4 mt-8 text-center">
           Still do not have an account?
-          <Link to="/register" className="px-4 font-bold">
+          <Link to="/register" className="ml-5 inline-block font-bold transition-transform hover:scale-110">
             Register
-          </Link>{" "}
+          </Link>
         </p>
-      </div>	
+      </div>
     </section>
 	</>
 	)

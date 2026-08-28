@@ -1,26 +1,13 @@
 import { Link } from "react-router";
-
-function Section({ title, children }) {
-	return (
-		<div
-			className="text-white rounded-xl p-6 border-2 border-transparent flex-1 min-w-[280px] max-w-full
-			lg:backdrop-blur-lg shadow-lg shadow-black"
-		>
-			<h2 className="text-2xl font-bold mb-3 text-white">{title}</h2>
-			<div className="space-y-3 leading-relaxed text-white">
-				{children}
-			</div>
-		</div>
-	);
-}
+import Section from "../components/Section";
 
 function TermsOfService() {
 	return (
-		<section className="min-h-screen text-white px-6 py-16">
+		<div className="min-h-screen text-white px-6 py-16">
 			<div className="max-w-3xl mx-auto">
 				<h1 className="text-5xl font-bold text-center">Terms of Service</h1>
 				<p className="mt-4 text-center text-white">
-					Last updated: August 26, 2026
+					Last updated: <time dateTime="2026-08-26">August 26, 2026</time>
 				</p>
 
 				<div className="mt-12 flex flex-wrap gap-6">
@@ -203,7 +190,7 @@ function TermsOfService() {
 					</Link>
 				</div>
 			</div>
-		</section>
+		</div>
 	);
 }
 
