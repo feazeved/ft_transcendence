@@ -10,7 +10,7 @@ function Layout() {
 			style={{ backgroundImage: `url(${moon})` }}
 		>
 			<Header />
-			<main className="flex-1 flex flex-col">
+			<main className="flex-1 flex flex-col" aria-label="Main content">
 				<Outlet />
 			</main>
 			<Footer />

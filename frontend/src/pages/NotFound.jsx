@@ -3,7 +3,7 @@ import cards from '@/assets/cards.svg'
 
 function NotFound() {
 	return (
-		<section className="flex-1 flex flex-col items-center justify-center text-white text-center px-8 py-16 gap-6">
+		<div className="flex-1 flex flex-col items-center justify-center text-white text-center px-8 py-16 gap-6">
 			<div className="flex select-none">
 				<span className="text-8xl sm:text-9xl font-bold" style={{ color: '#ef4444' }}>4</span>
 				<span className="text-8xl sm:text-9xl font-bold" style={{ color: '#eab308' }}>0</span>
@@ -23,7 +23,7 @@ function NotFound() {
 				height="h-48"
 				imageSize="w-24 h-24"
 			/>
-		</section>
+		</div>
 	)
 }
 

@@ -263,3 +263,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Agent / local tooling
+.scratch/
+.claude/settings.local.json
+
+# Local scratch / notes
+scratch/
+
+# Build & coverage output not covered above
+frontend/coverage/
+backend/staticfiles/
+backend/media/

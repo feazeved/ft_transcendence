@@ -1,52 +1,75 @@
 @import "tailwindcss";
 
 @theme {
-  --color-plum-50:  #f4e9f2;
-  --color-plum-100: #c89bc1;
-  --color-plum-200: #b287ab;
-  --color-plum-300: #9e7498;
-  --color-plum-400: #996f93;
-  --color-plum-500: #7a5675;
-  --color-plum-600: #5e3d59;
-  --color-plum-700: #482344;
-  --color-plum-800: #351831;
-  --color-plum-900: #20001b;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
-  --color-background: #482344;
-  --color-foreground: #f7eef5;
+  /* ---- Brand palette ------------------------------------------------------ */
+  /* Each color exposes a 50–950 scale plus a bare token (== the 500 step).   */
+  /* Use as any Tailwind color utility: bg-red-500, text-blue, border-green-200… */
 
-  --color-card: #5e3d59;
-  --color-card-foreground: #f7eef5;
+  /* red — base #E02130 */
+  --color-red-50: #FDF2F3;
+  --color-red-100: #FBE0E2;
+  --color-red-200: #F6BCC1;
+  --color-red-300: #F09098;
+  --color-red-400: #E75662;
+  --color-red-500: #E02130;
+  --color-red-600: #C51D2A;
+  --color-red-700: #A11823;
+  --color-red-800: #82131C;
+  --color-red-900: #650F16;
+  --color-red-950: #430A0E;
+  --color-red: #E02130;
 
-  --color-popover: #7a5675;
-  --color-popover-foreground: #f7eef5;
+  /* yellow — base #FAB243 */
+  --color-yellow-50: #FFFAF4;
+  --color-yellow-100: #FEF4E5;
+  --color-yellow-200: #FEE8C7;
+  --color-yellow-300: #FCD8A1;
+  --color-yellow-400: #FBC470;
+  --color-yellow-500: #FAB243;
+  --color-yellow-600: #DC9D3B;
+  --color-yellow-700: #B48030;
+  --color-yellow-800: #916727;
+  --color-yellow-900: #70501E;
+  --color-yellow-950: #4B3514;
+  --color-yellow: #FAB243;
 
-  --color-primary: #c89bc1;
-  --color-primary-foreground: #20001b;
+  /* green — base #169A4F */
+  --color-green-50: #F1F9F4;
+  --color-green-100: #DEF1E6;
+  --color-green-200: #B9E1CA;
+  --color-green-300: #8ACCA7;
+  --color-green-400: #4EB279;
+  --color-green-500: #169A4F;
+  --color-green-600: #138846;
+  --color-green-700: #106F39;
+  --color-green-800: #0D592E;
+  --color-green-900: #0A4524;
+  --color-green-950: #072E18;
+  --color-green: #169A4F;
 
-  --color-secondary: #7a5675;
-  --color-secondary-foreground: #f4e9f2;
-
-  --color-accent: #996f93;
-  --color-accent-foreground: #f7eef5;
-
-  --color-muted: #5e3d59;
-  --color-muted-foreground: #c89bc1;
-
-  --color-border: #7a5675;
-  --color-input: #351831;
-  --color-ring: #c89bc1;
-
-  --color-destructive: #d1495b;
-  --color-destructive-foreground: #f7eef5;
-  --color-success: #4fa87f;
+  /* blue — base #0077B9 */
+  --color-blue-50: #F0F7FB;
+  --color-blue-100: #DBECF5;
+  --color-blue-200: #B2D6EA;
+  --color-blue-300: #80BBDC;
+  --color-blue-400: #3D98CA;
+  --color-blue-500: #0077B9;
+  --color-blue-600: #0069A3;
+  --color-blue-700: #005685;
+  --color-blue-800: #00456B;
+  --color-blue-900: #003653;
+  --color-blue-950: #002438;
+  --color-blue: #0077B9;
 }
 
 .navbar-rainbow-line {
   background-image: linear-gradient(
     to right,
-    #ef4444, #eab308, #22c55e, #3b82f6,
-    #ef4444, #eab308, #22c55e, #3b82f6
+    #E02130, #FAB243, #169A4F, #0077B9,
+    #E02130, #FAB243, #169A4F, #0077B9
   );
   background-size: 200% 100%;
   animation: rainbow-scroll 6s linear infinite;

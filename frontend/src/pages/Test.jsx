@@ -15,7 +15,7 @@ function Swatch({ name, shade }) {
 
 function Test() {
 	return (
-		<main className="min-h-screen bg-background text-foreground p-8 space-y-12">
+		<div className="min-h-screen bg-background text-foreground p-8 space-y-12">
 			<header className="space-y-2">
 				<h1 className="text-4xl font-bold">Palette test page</h1>
 				<p className="text-muted-foreground">
@@ -24,8 +24,8 @@ function Test() {
 			</header>
 
 			{/* Buttons */}
-			<section className="space-y-4">
-				<h2 className="text-2xl font-semibold">Buttons</h2>
+			<section aria-labelledby="test-buttons-heading" className="space-y-4">
+				<h2 id="test-buttons-heading" className="text-2xl font-semibold">Buttons</h2>
 				<div className="flex flex-wrap gap-4">
 					<button className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:opacity-90">
 						Primary
@@ -49,36 +49,36 @@ function Test() {
 			</section>
 
 			{/* Cards */}
-			<section className="space-y-4">
-				<h2 className="text-2xl font-semibold">Cards</h2>
+			<section aria-labelledby="test-cards-heading" className="space-y-4">
+				<h2 id="test-cards-heading" className="text-2xl font-semibold">Cards</h2>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-						<h3 className="text-lg font-semibold text-foreground">Basic card</h3>
+					<section aria-labelledby="test-card-basic" className="rounded-xl border border-border bg-card p-5 shadow-sm">
+						<h3 id="test-card-basic" className="text-lg font-semibold text-foreground">Basic card</h3>
 						<p className="mt-2 text-sm text-muted-foreground">
 							Uses bg-card, border-border and text-muted-foreground.
 						</p>
-					</div>
-					<div className="rounded-xl border border-border bg-accent p-5 shadow-sm">
-						<h3 className="text-lg font-semibold text-foreground">Accent card</h3>
+					</section>
+					<section aria-labelledby="test-card-accent" className="rounded-xl border border-border bg-accent p-5 shadow-sm">
+						<h3 id="test-card-accent" className="text-lg font-semibold text-foreground">Accent card</h3>
 						<p className="mt-2 text-sm text-foreground/70">
 							Uses the flat --color-accent token.
 						</p>
-					</div>
-					<div className="rounded-xl bg-primary p-5 text-primary-foreground shadow-sm">
-						<h3 className="text-lg font-semibold">Primary card</h3>
+					</section>
+					<section aria-labelledby="test-card-primary" className="rounded-xl bg-primary p-5 text-primary-foreground shadow-sm">
+						<h3 id="test-card-primary" className="text-lg font-semibold">Primary card</h3>
 						<p className="mt-2 text-sm text-primary-foreground/80">
 							Uses bg-primary with primary-foreground text.
 						</p>
 						<button className="mt-4 rounded-md bg-primary-foreground px-3 py-1.5 text-sm text-primary">
 							Action
 						</button>
-					</div>
+					</section>
 				</div>
 			</section>
 
 			{/* Form elements */}
-			<section className="space-y-4">
-				<h2 className="text-2xl font-semibold">Form elements</h2>
+			<section aria-labelledby="test-form-heading" className="space-y-4">
+				<h2 id="test-form-heading" className="text-2xl font-semibold">Form elements</h2>
 				<div className="flex max-w-sm flex-col gap-3">
 					<input
 						type="text"
@@ -94,23 +94,23 @@ function Test() {
 			</section>
 
 			{/* Text tokens */}
-			<section className="space-y-2">
-				<h2 className="text-2xl font-semibold">Text tokens</h2>
+			<section aria-labelledby="test-text-heading" className="space-y-2">
+				<h2 id="test-text-heading" className="text-2xl font-semibold">Text tokens</h2>
 				<p className="text-foreground">text-foreground — main body text</p>
 				<p className="text-muted-foreground">text-muted-foreground — secondary text</p>
 				<p className="text-primary">text-primary — links, highlights</p>
 			</section>
 
 			{/* Full plum scale */}
-			<section className="space-y-4">
-				<h2 className="text-2xl font-semibold">plum-* scale</h2>
+			<section aria-labelledby="test-plum-heading" className="space-y-4">
+				<h2 id="test-plum-heading" className="text-2xl font-semibold">plum-* scale</h2>
 				<div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
 					{shades.map((shade) => (
 						<Swatch key={shade} name="plum" shade={shade} />
 					))}
 				</div>
 			</section>
-		</main>
+		</div>
 	)
 }
 
