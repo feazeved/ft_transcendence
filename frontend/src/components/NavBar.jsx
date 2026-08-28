@@ -20,7 +20,7 @@ const Header = () => {
 			<Link to="/"><img src={logo} alt="logo picture ONE" width={150} className="inline-block transition-transform duration-300 p-5 ease-in-out hover:translate-x-5"/></Link>
 			<ul className="flex text-white items-center gap-15">
 
-			<li><HoverLink to="#" className='p-2'>
+			<li><HoverLink to="/play" {...asModal} className='p-2'>
 				<img src={cards} alt="cards avatar svg" width={40} height={40}/>
 			</HoverLink></li>
 			<li><HoverLink to="/tournament" {...asModal} className='p-2'>
