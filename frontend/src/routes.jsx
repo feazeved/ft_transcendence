@@ -9,6 +9,7 @@ const Home = lazy(() => import('@/pages/Home.jsx'))
 const Test = lazy(() => import('@/pages/Test.jsx'))
 const Tournaments = lazy(() => import('@/pages/Tournaments.jsx'))
 const Profile = lazy(() => import('@/pages/Profile.jsx'))
+const Play = lazy(() => import('@/pages/Play.jsx'))
 const Leaderboard = lazy(() => import('@/pages/Leaderboard.jsx'))
 const Login = lazy(() => import('@/pages/Login.jsx'))
 const Register = lazy(() => import('@/pages/Register.jsx'))
@@ -23,6 +24,7 @@ const MODAL_ROUTES = [
 	{ path: '/profile', title: 'Profile', element: <Profile /> },
 	{ path: '/tournament', title: 'Tournaments', element: <Tournaments /> },
 	{ path: '/leaderboard', title: 'Leaderboard', element: <Leaderboard /> },
+	{ path: '/play', title: 'Play', element: <Play /> },
 ]
 
 function AppRoutes() {
@@ -43,6 +45,7 @@ function AppRoutes() {
 					<Route path="/tournament" element={<Tournaments />} />
 					<Route path="/profile" element={<Profile />} />
 					<Route path="/leaderboard" element={<Leaderboard />} />
+					<Route path="/play" element={<Play />} />
 					<Route path="/login" element={<Login />} />
 					<Route path="/register" element={<Register />} />
 					<Route path="/privacy-policy" element={<PrivacyPolicy />} />
