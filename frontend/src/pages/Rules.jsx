@@ -6,14 +6,14 @@ import Section from "../components/Section"
 
 function Rules() {
 	return (
-		<div className="min-h-screen text-white px-6 py-16">
-			<div className="mx-auto max-w-3xl">
+		<div className="text-white px-6 py-10">
+			<div className="mx-4">
 				<h1 className="text-center text-5xl font-bold">Rules</h1>
 				<p className="mt-4 text-center text-slate-400">
 					Everything you need to know to play ONE.
 				</p>
 
-				<div className="mt-12 flex flex-col gap-6">
+				<div className="mt-12 flex wrap gap-6">
 					<Section title="How to Play">
 						<p>
 							<strong>Goal :</strong> be the first to run out of cards in your hand.
