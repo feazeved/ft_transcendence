@@ -4,12 +4,12 @@
 import { useState } from "react"
 import { Navigate, useNavigate, useParams, useLocation } from "react-router"
 import { useAuth } from "@/lib/auth.jsx"
-import { enabledRuleLabels, mockRoom, seatPlayer } from "@/lib/rooms.js"
+import { enabledRuleLabels, joinRoom, MAX_SPECTATORS, mockRoom } from "@/lib/rooms.js"
 import cardVerse from "../assets/one_card_verse.svg"
-import table from "../assets/table.png"
+import table from "../assets/table-2.png"
 
-const RAINBOW =
-	"shadow-[-4px_-4px_16px_0_#E02130,4px_-4px_16px_0_#FAB243,4px_4px_16px_0_#169A4F,-4px_4px_16px_0_#0077B9]"
+// Defined once in index.css (`.rainbow-shadow` / the --rainbow-* vars).
+const RAINBOW = "rainbow-shadow"
 
 function Room() {
 	const { id } = useParams()
@@ -25,18 +25,23 @@ function Room() {
 	// come, go or change chair.
 	const fromNav = location.state?.room
 	const baseRoom = fromNav?.code === id ? fromNav : mockRoom(id)
-	// Seat whoever opened the page, so the table includes them — covers a shared
-	// link or a refresh, where Play never got to add them.
-	const seededRoom = seatPlayer(baseRoom, user)
+	// Add whoever opened the page, so the table includes them — covers a shared
+	// link or a refresh, where Play never got to add them. They land in a chair
+	// if one's free, otherwise as a spectator.
+	const seededRoom = joinRoom(baseRoom, user)
 
 	// One slot per chair around the table, `null` when free. A player keeps the
-	// slot they land in; clicking a free slot moves you there (`moveToSeat`).
+	// slot they land in; clicking a free slot moves you there (`takeSeat`).
 	const [seats, setSeats] = useState(() =>
 		Array.from(
 			{ length: seededRoom.settings.max_players },
 			(_, i) => seededRoom.players[i] ?? null,
 		),
 	)
+
+	// Watchers with no chair. A spectator can grab a freed seat (`takeSeat`),
+	// which pulls them out of this list and into `seats` as a player.
+	const [spectators, setSpectators] = useState(() => seededRoom.spectators ?? [])
 
 	// A room has nothing to show for a signed-out visitor (no name, no avatar)
 	// and none of its actions work, so send them to sign in and come back.
@@ -46,22 +51,41 @@ function Room() {
 	const seatCount = seats.length
 	const players = seats.filter(Boolean)
 	const mySeat = seats.findIndex((p) => p?.name === user.username)
+	const amSpectator = spectators.some((s) => s.name === user.username)
 	const isHost = room.host === user.username
 	const rules = enabledRuleLabels(room.settings)
 
-	// Move the current player into a free chair. No-op if it's taken, if it's
-	// the one they're already in, or if they aren't seated at all.
+	// Put the current user into a free chair `target`. A seated player switches
+	// chairs; a spectator claims the seat and becomes a player, leaving the
+	// watchers list. No-op if the seat is taken or it's the one they're in.
 	// TODO(backend): POST /games/:code/seat { index }, broadcast over the socket.
-	const moveToSeat = (target) => {
-		setSeats((prev) => {
-			if (prev[target]) return prev
-			const from = prev.findIndex((p) => p?.name === user.username)
-			if (from === -1 || from === target) return prev
-			const next = [...prev]
-			next[target] = prev[from]
-			next[from] = null
-			return next
-		})
+	const takeSeat = (target) => {
+		if (seats[target] || mySeat === target) return
+
+		if (mySeat !== -1) {
+			setSeats((prev) => {
+				if (prev[target]) return prev
+				const next = [...prev]
+				next[target] = prev[mySeat]
+				next[mySeat] = null
+				return next
+			})
+			return
+		}
+
+		if (amSpectator) {
+			setSeats((prev) => {
+				if (prev[target]) return prev
+				const next = [...prev]
+				next[target] = {
+					name: user.username,
+					avatar: user.avatar ?? "/profile/default.jpg",
+					isHost,
+				}
+				return next
+			})
+			setSpectators((prev) => prev.filter((s) => s.name !== user.username))
+		}
 	}
 
 	const copyId = async () => {
@@ -74,8 +98,23 @@ function Room() {
 		}
 	}
 
+	// Give up my chair and move to the watchers. No-op if I'm not seated or the
+	// spectator slots are already full.
+	// TODO(backend): POST /games/:code/spectate — frees the seat over the socket
+	// so a waiting watcher can take it.
+	const goSpectate = () => {
+		if (mySeat === -1 || spectators.length >= MAX_SPECTATORS) return
+		setSeats((prev) => prev.map((p) => (p?.name === user.username ? null : p)))
+		setSpectators((prev) => [
+			...prev,
+			{ name: user.username, avatar: user.avatar ?? "/profile/default.jpg", isHost: false },
+		])
+	}
+
 	const leaveRoom = () => {
-		// TODO(backend): POST /games/:code/leave
+		// TODO(backend): POST /games/:code/leave — the server frees my chair (or
+		// drops me from the spectators), and the socket tells the watchers a seat
+		// opened up so one of them can take it.
 		navigate("/")
 	}
 
@@ -112,6 +151,12 @@ function Room() {
 						</span>
 					</h3>
 
+					{amSpectator && (
+						<p className="mb-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70">
+							You're spectating. Take a free seat to join the game.
+						</p>
+					)}
+
 					{/* Chairs laid out around table.png: each is placed on a circle
 					    by its index. A free chair is a button that seats you in it. */}
 					<div className="relative mx-auto aspect-square w-full max-w-150">
@@ -122,7 +167,7 @@ function Room() {
 						/>
 						{seats.map((player, i) => {
 							const mine = player?.name === user.username
-							const canSit = !player && mySeat !== -1
+							const canSit = !player && (mySeat !== -1 || amSpectator)
 							// Every seat is built identically and pinned to the top-centre
 							// of a full-size wrapper; spinning the wrapper drops it onto the
 							// ring, so the gap to the table is the same all the way around,
@@ -142,7 +187,7 @@ function Room() {
 										<button
 											type="button"
 											disabled={!canSit}
-											onClick={() => moveToSeat(i)}
+											onClick={() => takeSeat(i)}
 											aria-label={
 												player
 													? `Seat ${i + 1}: ${player.name}${player.isHost ? " (host)" : ""}`
@@ -163,11 +208,11 @@ function Room() {
 													<span
 														className={`flex h-full w-full items-center justify-center overflow-hidden rounded-full border bg-white/5 transition ${
 															mine
-																? "border-yellow"
+																? "border-blue-700"
 																: player
 																	? "border-white/20"
 																	: canSit
-																		? "border-dashed border-white/30 group-hover:scale-105 group-hover:border-white/80"
+																		? "border-dashed border-white/30 group-hover:scale-105 group-hover:border-white"
 																		: "border-dashed border-white/20"
 														}`}
 													>
@@ -178,7 +223,7 @@ function Room() {
 														)}
 													</span>
 													{player?.isHost && (
-														<span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-yellow px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+														<span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
 															host
 														</span>
 													)}
@@ -192,35 +237,74 @@ function Room() {
 							)
 						})}
 					</div>
+
 				</div>
 
 				<aside className="rounded-xl border border-white/10 bg-white/5 p-4 sm:w-56">
 					<h3 className="mb-3 text-lg font-bold">Settings</h3>
 					<dl className="space-y-1 text-sm">
 						<div className="flex justify-between gap-2">
-							<dt className="text-white/50">Max players</dt>
+							<dt className="text-white/90">Max players</dt>
 							<dd>{room.settings.max_players}</dd>
 						</div>
 						<div className="flex justify-between gap-2">
-							<dt className="text-white/50">Starting hand</dt>
+							<dt className="text-white/90">Starting hand</dt>
 							<dd>{room.settings.starting_hand_size}</dd>
 						</div>
 						<div className="flex justify-between gap-2">
-							<dt className="text-white/50">Turn timer</dt>
+							<dt className="text-white/90">Turn timer</dt>
 							<dd>{room.settings.turn_timer_seconds}s</dd>
 						</div>
 					</dl>
-					<h4 className="mb-2 mt-4 text-sm text-white/50">Optional rules</h4>
+					<h4 className="mb-2 mt-4 text-sm text-white/90">Optional rules</h4>
 					{rules.length ? (
 						<ul className="flex flex-wrap gap-1.5">
 							{rules.map((label) => (
-								<li key={label} className="rounded-md bg-green/20 px-2 py-0.5 text-xs text-green-200">
+								<li key={label} className="rounded-md bg-blue/80 px-2 py-0.5 text-xs text-white">
 									{label}
 								</li>
 							))}
 						</ul>
 					) : (
 						<p className="text-xs text-white/40">Classic rules only.</p>
+					)}
+
+					<h4 className="mb-2 mt-4 text-sm text-white/90">
+						Spectators{" "}
+						<span className="text-white/50">
+							{room.settings.spectate ? (
+								`${spectators.length}/${MAX_SPECTATORS}`
+							) : (
+								<span title="Spectating off">0/0</span>
+							)}
+						</span>
+					</h4>
+					{!room.settings.spectate ? (
+						<p className="text-xs text-white/40">Spectating is off for this room.</p>
+					) : spectators.length ? (
+						<ul className="space-y-1 text-sm">
+							{spectators.map((s) => (
+								<li
+									key={s.name}
+									className={`truncate ${s.name === user.username ? "font-bold text-white" : "text-white/70"}`}
+								>
+									{s.name}
+								</li>
+							))}
+						</ul>
+					) : (
+						<p className="text-xs text-white/40">No one's watching.</p>
+					)}
+
+					{mySeat !== -1 && room.settings.spectate && (
+						<button
+							type="button"
+							onClick={goSpectate}
+							disabled={spectators.length >= MAX_SPECTATORS}
+							className="mt-4 w-full rounded-lg border border-white px-3 py-2 text-sm font-bold transition-transform hover:scale-105 cursor-pointer disabled:opacity-40 disabled:hover:scale-100"
+						>
+							{spectators.length >= MAX_SPECTATORS ? "Spectators full" : "Spectate"}
+						</button>
 					)}
 				</aside>
 			</div>
@@ -238,7 +322,7 @@ function Room() {
 						type="button"
 						onClick={startGame}
 						disabled={players.length < 2}
-						className="rounded-lg bg-yellow px-5 py-2 font-bold text-black transition-transform hover:scale-105 cursor-pointer disabled:opacity-40 disabled:hover:scale-100"
+						className="rounded-lg bg-white px-5 py-2 font-bold text-black transition-transform hover:scale-105 cursor-pointer disabled:opacity-40 disabled:hover:scale-100"
 					>
 						Start game
 					</button>

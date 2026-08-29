@@ -4,82 +4,74 @@
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
-  /* ---- Brand palette ------------------------------------------------------ */
-  /* Each color exposes a 50–950 scale plus a bare token (== the 500 step).   */
-  /* Use as any Tailwind color utility: bg-red-500, text-blue, border-green-200… */
-
-  /* red — base #E02130 */
-  --color-red-50: #FDF2F3;
-  --color-red-100: #FBE0E2;
-  --color-red-200: #F6BCC1;
-  --color-red-300: #F09098;
-  --color-red-400: #E75662;
-  --color-red-500: #E02130;
-  --color-red-600: #C51D2A;
-  --color-red-700: #A11823;
-  --color-red-800: #82131C;
-  --color-red-900: #650F16;
-  --color-red-950: #430A0E;
+/* Card colors*/
   --color-red: #E02130;
-
-  /* yellow — base #FAB243 */
-  --color-yellow-50: #FFFAF4;
-  --color-yellow-100: #FEF4E5;
-  --color-yellow-200: #FEE8C7;
-  --color-yellow-300: #FCD8A1;
-  --color-yellow-400: #FBC470;
-  --color-yellow-500: #FAB243;
-  --color-yellow-600: #DC9D3B;
-  --color-yellow-700: #B48030;
-  --color-yellow-800: #916727;
-  --color-yellow-900: #70501E;
-  --color-yellow-950: #4B3514;
   --color-yellow: #FAB243;
-
-  /* green — base #169A4F */
-  --color-green-50: #F1F9F4;
-  --color-green-100: #DEF1E6;
-  --color-green-200: #B9E1CA;
-  --color-green-300: #8ACCA7;
-  --color-green-400: #4EB279;
-  --color-green-500: #169A4F;
-  --color-green-600: #138846;
-  --color-green-700: #106F39;
-  --color-green-800: #0D592E;
-  --color-green-900: #0A4524;
-  --color-green-950: #072E18;
   --color-green: #169A4F;
-
-  /* blue — base #0077B9 */
-  --color-blue-50: #F0F7FB;
-  --color-blue-100: #DBECF5;
-  --color-blue-200: #B2D6EA;
-  --color-blue-300: #80BBDC;
-  --color-blue-400: #3D98CA;
-  --color-blue-500: #0077B9;
-  --color-blue-600: #0069A3;
-  --color-blue-700: #005685;
-  --color-blue-800: #00456B;
-  --color-blue-900: #003653;
-  --color-blue-950: #002438;
   --color-blue: #0077B9;
+
+/* Rainbow colors*/
+  --color-blue-raiwbow: #6a69b3;
+  --color-cyan-raiwbow: #49367c;
+  --color-ligh-purple-raiwbow: #89F1FB;
+  --color-purple-raiwbow: #0960ac;
+}
+
+/* ======================================================================= */
+/*  Rainbow glow — the ONE place to restyle every rainbow shadow.          */
+/*  Used by Modal, HoverLink, the Login/Register buttons and the          */
+/*  Play/Room room cards. Tweak a value below and it changes everywhere.   */
+/*  In markup use the `rainbow-shadow` class (or `hover:rainbow-shadow`    */
+/*  for a hover-only glow).                                                */
+/* ======================================================================= */
+:root {
+  --rainbow-1: var(--color-blue-raiwbow);
+  --rainbow-2: var(--color-cyan-raiwbow);
+  --rainbow-3: var(--color-ligh-purple-raiwbow);
+  --rainbow-4: var(--color-purple-raiwbow);
+  --rainbow-shadow-offset: 4px;
+  --rainbow-shadow-blur: 16px;
+
+  --rainbow-shadow:
+    calc(-1 * var(--rainbow-shadow-offset)) calc(-1 * var(--rainbow-shadow-offset)) var(--rainbow-shadow-blur) 0 var(--rainbow-1),
+    var(--rainbow-shadow-offset)            calc(-1 * var(--rainbow-shadow-offset)) var(--rainbow-shadow-blur) 0 var(--rainbow-2),
+    var(--rainbow-shadow-offset)            var(--rainbow-shadow-offset)            var(--rainbow-shadow-blur) 0 var(--rainbow-3),
+    calc(-1 * var(--rainbow-shadow-offset)) var(--rainbow-shadow-offset)            var(--rainbow-shadow-blur) 0 var(--rainbow-4);
+}
+
+@utility rainbow-shadow {
+  box-shadow: var(--rainbow-shadow);
 }
 
 .navbar-rainbow-line {
   background-image: linear-gradient(
     to right,
-    #E02130, #FAB243, #169A4F, #0077B9,
-    #E02130, #FAB243, #169A4F, #0077B9
+    #0960ac, #89F1FB, #6a69b3, #49367c,
+    #0960ac, #89F1FB, #6a69b3, #49367c
   );
   background-size: 200% 100%;
   animation: rainbow-scroll 6s linear infinite;
 }
 
+/* Same rainbow, painted onto the text itself. */
+@utility rainbow-text {
+  background-image: linear-gradient(
+    to right,
+    #0960ac, #89F1FB, #6a69b3, #49367c,
+    #0960ac, #89F1FB, #6a69b3, #49367c
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: rainbow-scroll 6s linear infinite;
+}
+
 @keyframes rainbow-scroll {
   from {
-    background-position: 100% 0;
+    background-position: 200% 0;
   }
   to {
-    background-position: -100% 0;
+    background-position: 0% 0;
   }
 }

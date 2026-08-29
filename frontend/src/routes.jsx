@@ -14,6 +14,7 @@ const Room = lazy(() => import('@/pages/Room.jsx'))
 const Rules = lazy(() => import('@/pages/Rules.jsx'))
 const Leaderboard = lazy(() => import('@/pages/Leaderboard.jsx'))
 const Login = lazy(() => import('@/pages/Login.jsx'))
+const Friends = lazy(() => import('@/pages/Friends.jsx'))
 const Register = lazy(() => import('@/pages/Register.jsx'))
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy.jsx'))
 const TermsOfService = lazy(() => import('@/pages/TermsOfService.jsx'))
@@ -27,6 +28,7 @@ const MODAL_ROUTES = [
 	{ path: '/tournament', title: 'Tournaments', element: <Tournaments /> },
 	{ path: '/leaderboard', title: 'Leaderboard', element: <Leaderboard /> },
 	{ path: '/play', title: 'Play', element: <Play /> },
+	{ path: '/friends', title: 'Friends', element: <Friends /> },
 ]
 
 function AppRoutes() {
@@ -54,6 +56,7 @@ function AppRoutes() {
 					{/* Rules is long-form reading — always a full page, never a modal. */}
 					<Route path="/rules" element={<Rules />} />
 					<Route path="/login" element={<Login />} />
+					<Route path="/friends" element={<Friends />} />
 					<Route path="/register" element={<Register />} />
 					<Route path="/privacy-policy" element={<PrivacyPolicy />} />
 					<Route path="/terms-of-service" element={<TermsOfService />} />

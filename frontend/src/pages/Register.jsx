@@ -66,8 +66,7 @@ function Register() {
           </div>
             <button
               onClick={handleSubmit}
-              className="block w-full m-auto bg-black px-6 py-2 rounded-sm text-2xl mb-5 cursor-pointer
-			  hover:shadow-[-4px_-4px_10px_0_#ef4444,4px_-4px_10px_0_#facc15,4px_4px_10px_0_#22c55e,-4px_4px_10px_0_#3b82f6] hover:scale-102"
+              className="block w-full m-auto bg-linear-to-r from-violet-700/60 to-cyan-400/60 px-6 py-2 rounded-sm text-xl cursor-pointer hover:scale-105"
             >
               Register
             </button>
@@ -76,7 +75,7 @@ function Register() {
             )}
         </div>
         <p className="mb-4 mt-4 pl-1 text-center">
-          Already have an account?
+          <span>Already have an account?</span>
           <Link to="/login" className="ml-5 inline-block font-bold transition-transform hover:scale-110">
             Login
           </Link>

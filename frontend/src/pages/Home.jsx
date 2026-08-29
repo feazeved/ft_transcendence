@@ -10,7 +10,7 @@ function Home() {
 	return (
 		<div className="min-h-screen text-white px-8 py-16">
 			<header className="max-w-2xl mx-auto text-center">
-				<h1 className="text-6xl font-bold ">
+				<h1 className="text-6xl font-bold rainbow-text">
 					FT_TRANSCENDENCE
 				</h1>
 				<p className="mt-4 text-xl">
