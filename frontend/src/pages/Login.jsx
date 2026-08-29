@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import PasswordInput from "../components/PasswordInput";
 import { api } from "@/lib/api.js";
+import { useAuth } from "@/lib/auth.jsx";
 import ft from "../assets/42.svg"
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  // Where to land after signing in — set when a guard (e.g. /room/:id) bounced
+  // the visitor here. Falls back to the home page.
+  const from = location.state?.from ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,8 +22,12 @@ function Login() {
 
     try {
       const data = await api.post("/auth/login/", { email, password });
-      if (data?.token) localStorage.setItem("token", data.token);
-      navigate("/");
+      // `data.user` carries the account's real fields (username chosen at
+      // registration, avatar, …) straight from the DB. Until the backend sends
+      // it / signs a JWT with those claims, auth.jsx falls back to a generic
+      // "player" placeholder — we never invent a username from the email.
+      login(data?.user, data?.token);
+      navigate(from, { replace: true });
     } catch (err) {
       console.error("Error during login:", err.message);
       setError("Login failed. Please check your credentials and try again.");

@@ -9,13 +9,13 @@ const AVATARS = [
 	"alex.png",
 	"fifipe.png",
 	"wallace.png",
-	"Anime_girl_in_space_suit_202608281520-removebg-preview 2.jpg",
-	"Astronaut_helmet_avatar_icon_202608281530-removebg-preview 1.jpg",
-	"Bulldog_astronaut_wearing_space___202608281520-removebg-preview 1.jpg",
-	"Cat_wearing_astronaut_suit_floating_202608281520-removebg-preview 1.jpg",
-	"Green_alien_astronaut_avatar_icon_202608281521-removebg-preview 1.jpg",
-	"Rubber_duck_astronaut_wearing_he__202608281522-removebg-preview 1.jpg",
-	"Yellow_smiley_astronaut_in_helmet_202608281521-removebg-preview 1.jpg",
+	"girl.jpg",
+	"default.jpg",
+	"dog.jpg",
+	"cat.jpg",
+	"alien.jpg",
+	"duck.jpg",
+	"smiley.jpg",
 ].map((name) => encodeURI(`/profile/${name}`))
 
 // Small popup that lets the user pick one of the bundled profile pictures.

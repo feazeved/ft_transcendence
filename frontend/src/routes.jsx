@@ -10,6 +10,8 @@ const Test = lazy(() => import('@/pages/Test.jsx'))
 const Tournaments = lazy(() => import('@/pages/Tournaments.jsx'))
 const Profile = lazy(() => import('@/pages/Profile.jsx'))
 const Play = lazy(() => import('@/pages/Play.jsx'))
+const Room = lazy(() => import('@/pages/Room.jsx'))
+const Rules = lazy(() => import('@/pages/Rules.jsx'))
 const Leaderboard = lazy(() => import('@/pages/Leaderboard.jsx'))
 const Login = lazy(() => import('@/pages/Login.jsx'))
 const Register = lazy(() => import('@/pages/Register.jsx'))
@@ -46,6 +48,11 @@ function AppRoutes() {
 					<Route path="/profile" element={<Profile />} />
 					<Route path="/leaderboard" element={<Leaderboard />} />
 					<Route path="/play" element={<Play />} />
+					{/* A room is always a full page (has its own id in the URL to
+					    share), never a stacked modal — so it's not in MODAL_ROUTES. */}
+					<Route path="/room/:id" element={<Room />} />
+					{/* Rules is long-form reading — always a full page, never a modal. */}
+					<Route path="/rules" element={<Rules />} />
 					<Route path="/login" element={<Login />} />
 					<Route path="/register" element={<Register />} />
 					<Route path="/privacy-policy" element={<PrivacyPolicy />} />
