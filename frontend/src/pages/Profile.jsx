@@ -4,14 +4,17 @@
 // own close button.
 
 import { useState } from "react"
+import { useNavigate } from "react-router"
 import PasswordInput from "../components/PasswordInput.jsx"
 import AvatarPicker from "../components/AvatarPicker.jsx"
 import api from "../lib/api.js"
+import { useAuth } from "../lib/auth.jsx"
 import pencil from "../assets/pencil.svg"
+import logoutIcon from "../assets/logout.svg"
 
 // Fallback until the backend sends the real avatar. Files live in
 // public/profile, so they're served from the site root (see AvatarPicker).
-const DEFAULT_AVATAR = "/profile/daniel.png"
+const DEFAULT_AVATAR = "/profile/default.jpg"
 
 function Profile() {
 	// mockup data, replace with real info from the database
@@ -33,6 +36,16 @@ function Profile() {
 	const [error, setError] = useState("")
 	// The "change picture" popup.
 	const [pickerOpen, setPickerOpen] = useState(false)
+
+	const navigate = useNavigate()
+	const { logout } = useAuth()
+
+	const handleLogout = () => {
+		logout()
+		// Leaves the profile (closing it if it's a modal) and drops the
+		// background location, so the navbar flips back to the log-in icon.
+		navigate("/")
+	}
 
 	const startEdit = () => {
 		setDraft({ name, username, email, pass, avatar })
@@ -210,15 +223,26 @@ function Profile() {
 						</button>
 					</div>
 				) : (
-					<button
-						type="button"
-						onClick={startEdit}
-						aria-label="Edit profile"
-						className="cursor-pointer mx-auto flex items-center justify-center gap-2 rounded-lg border border-white px-4 py-2 ..."
-					>
-						Edit
-						<img src={pencil} alt="" className="w-4" />
-					</button>
+					<div className="flex justify-center gap-3">
+						<button
+							type="button"
+							onClick={startEdit}
+							aria-label="Edit profile"
+							className="cursor-pointer flex items-center justify-center gap-2 rounded-lg border border-white px-4 py-2 transition-transform hover:scale-105"
+						>
+							Edit
+							<img src={pencil} alt="" className="w-4" />
+						</button>
+						<button
+							type="button"
+							onClick={handleLogout}
+							aria-label="Log out"
+							className="cursor-pointer flex items-center justify-center gap-2 rounded-lg border border-white px-4 py-2 transition-transform hover:scale-105"
+						>
+							Logout
+							<img src={logoutIcon} alt="" className="w-4" />
+						</button>
+					</div>
 				)}
 			</form>
 

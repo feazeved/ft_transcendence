@@ -6,9 +6,13 @@ import trophy from "../assets/tournamen.svg"
 import cards from "../assets/cards.svg"
 import friends from "../assets/friends.svg"
 import HoverLink from "./HoverLink"
+import { useAuth } from "../lib/auth.jsx"
 
 const Header = () => {
   const location = useLocation()
+  // null when logged out. When set, we show the avatar instead of the icon
+  // (later populated from the JWT — username, avatar, …).
+  const { user } = useAuth()
   // Spread onto a link to make its target open as a popup over the current
   // page instead of navigating away to the full page (see routes.jsx).
   const asModal = { state: { background: location } }
@@ -32,9 +36,21 @@ const Header = () => {
 			<li><HoverLink to="#" className='p-1'>
 				<img src={friends} alt="friends avatar svg" width={46} height={46}/>
 			</HoverLink></li>
-			<li><HoverLink to="/profile" {...asModal} className="p-2">
-				<img src={profile} alt="profile avatar svg" width={26} height={26}/>
-			</HoverLink></li>
+			<li>
+				{user ? (
+					<HoverLink to="/profile" {...asModal} className="p-2">
+						<img
+							src={user.avatar}
+							alt={`${user.username} profile`}
+							className="rounded-full object-cover w-11"
+						/>
+					</HoverLink>
+				) : (
+					<HoverLink to="/login" className="p-2">
+						<img src={profile} alt="log in" width={26} height={26}/>
+					</HoverLink>
+				)}
+			</li>
 			</ul>
 		</nav>
 		<div

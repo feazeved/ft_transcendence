@@ -32,7 +32,6 @@ function Home() {
 				</Link>
 				<Link
 					to="/rules"
-					{...asModal}
 					aria-labelledby="home-rules-heading"
 					className="bg-black rounded-xl border border-white p-6 relative overflow-hidden h-60 block transition-transform hover:scale-105"
 				>
