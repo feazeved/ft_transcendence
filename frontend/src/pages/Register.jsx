@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import PasswordInput from "../components/PasswordInput";
+import Section from "../components/Section";
 import { api } from "@/lib/api.js";
 
 function Register() {
@@ -30,12 +31,8 @@ function Register() {
   };
 
   return (
-    <section className="flex-1 flex items-center justify-center text-white">
-      <div className="lg:backdrop-blur-lg w-screen max-w-sm min-w-125 p-4 rounded-xl shadow-lg shadow-black  border-2 border-transparent">
-        <h1 className="text-xl text-center tracking-wide">
-          Sign up
-        </h1>
-
+    <div className="flex-1 flex items-center justify-center text-white">
+      <Section title="Sign up" className="w-screen max-w-sm min-w-125">
         <div className="flex flex-col my-3 gap-4">
           <div>
             <p className="px-3">Username</p>
@@ -84,8 +81,8 @@ function Register() {
             Login
           </Link>
         </p>
-      </div>
-    </section>
+      </Section>
+    </div>
   );
 }
 

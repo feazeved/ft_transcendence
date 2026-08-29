@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import PasswordInput from "../components/PasswordInput";
+import Section from "../components/Section";
 import { api } from "@/lib/api.js";
 import { useAuth } from "@/lib/auth.jsx";
 import ft from "../assets/42.svg"
@@ -35,14 +36,8 @@ function Login() {
   };
 
 	return (
-		<>
-		<section className="flex-1 text-white flex justify-center items-center">
-	  <div
-	    className="lg:backdrop-blur-lg w-screen max-w-sm min-w-125 p-4 rounded-xl shadow-lg shadow-black  border-2 border-transparent"
-	  >
-        <h1 className="text-xl text-center tracking-wide">
-          Welcome back
-        </h1>
+		<div className="flex-1 text-white flex justify-center items-center">
+			<Section title="Welcome back" className="w-screen max-w-sm min-w-125">
         <div className="flex flex-col ">
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col my-3">
@@ -108,9 +103,8 @@ function Login() {
             Register
           </Link>
         </p>
-      </div>
-    </section>
-	</>
+			</Section>
+		</div>
 	)
 }
 
