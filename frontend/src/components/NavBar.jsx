@@ -33,7 +33,7 @@ const Header = () => {
 			<li><HoverLink to="/leaderboard" {...asModal} className='p-2'>
 				<img src={leaderboard} alt="leaderboard avatar svg" width={36} height={36}/>
 			</HoverLink></li>
-			<li><HoverLink to="#" className='p-1'>
+			<li><HoverLink to="/friends" {...asModal} className='p-1'>
 				<img src={friends} alt="friends avatar svg" width={46} height={46}/>
 			</HoverLink></li>
 			<li>

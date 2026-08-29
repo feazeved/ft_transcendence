@@ -5,23 +5,29 @@ import { useState } from "react"
 import { useNavigate } from "react-router"
 import CreateRoomModal from "@/components/CreateRoomModal.jsx"
 import { useAuth } from "@/lib/auth.jsx"
-import { defaultRoomSettings, hasAnyModifier, makeRoomCode, seatPlayer } from "@/lib/rooms.js"
+import {
+	defaultRoomSettings,
+	hasAnyModifier,
+	joinRoom,
+	makeRoomCode,
+	MAX_SPECTATORS,
+} from "@/lib/rooms.js"
 import cardVerse from "../assets/one_card_verse.svg"
 
 // Mockup rooms until the backend serves the real list. It's ONE (UNO), so a
 // room has no theme — just a host, its players and which rule modifiers are on.
 // Shape matches lib/rooms.js so a created room slots straight in.
 const ROOMS = [
-	room("3i2", "simba", 3, { ...defaultRoomSettings(), max_players: 5, jump_in: true }),
+	room("3i2", "guesttt", 3, { ...defaultRoomSettings(), max_players: 5, jump_in: true }, 1),
 	room("38G", "daniel", 2, { ...defaultRoomSettings(), max_players: 6 }),
-	room("18r", "feazeved", 4, { ...defaultRoomSettings(), max_players: 5, seven_swap: true }),
-	room("178", "guest_11", 9, { ...defaultRoomSettings(), max_players: 10 }),
-	room("10x", "lucas", 3, { ...defaultRoomSettings(), max_players: 10, stacking_draw_two: true }),
+	room("18r", "feazeved", 5, { ...defaultRoomSettings(), max_players: 5, spectate: false }, 2),
+	room("178", "guest_11", 10, { ...defaultRoomSettings(), max_players: 10 }, 4),
+	room("10x", "lucas", 3, { ...defaultRoomSettings(), max_players: 10, spectate: false }),
 	room("9Qk", "ana", 1, { ...defaultRoomSettings(), max_players: 10 }),
 	room("21n", "pedro", 3, { ...defaultRoomSettings(), max_players: 5, zero: true }),
 ]
 
-function room(code, host, playerCount, settings) {
+function room(code, host, playerCount, settings, spectatorCount = 0) {
 	return {
 		code,
 		name: `${host}'s table`,
@@ -33,12 +39,17 @@ function room(code, host, playerCount, settings) {
 			avatar: "/profile/default.jpg",
 			isHost: i === 0,
 		})),
+		spectators: Array.from({ length: spectatorCount }, (_, i) => ({
+			name: `watcher_${i + 1}`,
+			avatar: "/profile/default.jpg",
+			isHost: false,
+		})),
 	}
 }
 
 // Brand glow reused from Modal/HoverLink, marks the selected room.
-const RAINBOW =
-	"shadow-[-4px_-4px_16px_0_#E02130,4px_-4px_16px_0_#FAB243,4px_4px_16px_0_#169A4F,-4px_4px_16px_0_#0077B9]"
+// Defined once in index.css (`.rainbow-shadow` / the --rainbow-* vars).
+const RAINBOW = "rainbow-shadow"
 
 function Play() {
 	const navigate = useNavigate()
@@ -52,6 +63,9 @@ function Play() {
 		`${r.name} ${r.host} #${r.code}`.toLowerCase().includes(query.trim().toLowerCase()),
 	)
 
+	const selectedFull = !!selected && selected.players.length >= selected.settings.max_players
+	const selectedCanSpectate = !!selected?.settings.spectate
+
 	function handleCreate({ name, settings }) {
 		const code = makeRoomCode()
 		const host = user?.username ?? "you"
@@ -62,6 +76,7 @@ function Play() {
 			status: "pending",
 			settings,
 			players: [{ name: host, avatar: user?.avatar ?? "/profile/default.jpg", isHost: true }],
+			spectators: [],
 		}
 		// TODO(backend): POST /games/ with { name, ...settings } (map max_players
 		// -> max_seats, seven_swap|zero -> seven_zero), use the returned join_code.
@@ -70,23 +85,25 @@ function Play() {
 		navigate(`/room/${code}`, { state: { room: newRoom } })
 	}
 
-	// Seat the current user in the room, reflect that in the list's "x/y" count,
-	// and open the room page. Anyone not logged in is sent to sign in first —
-	// a room needs a name + avatar to show, and you can't leave/start without one.
+	// Add the current user to the room and open the room page. They take a seat
+	// when one's free and fall back to spectating once the table is full; from
+	// inside the room they can switch between the two. Anyone not logged in is
+	// sent to sign in first: a room needs a name + avatar to show, and you can't
+	// leave/start/sit without one.
 	function openRoom(room) {
 		if (!user) {
 			navigate("/login", { state: { from: `/room/${room.code}` } })
 			return
 		}
 		// TODO(backend): POST /games/:code/join, then navigate with the server room.
-		const joined = seatPlayer(room, user)
+		const joined = joinRoom(room, user)
+		if (joined === room) return // room was full — no seat, no spectator slot
 		setRooms((rs) => rs.map((r) => (r.code === joined.code ? joined : r)))
 		navigate(`/room/${joined.code}`, { state: { room: joined } })
 	}
 
-	function joinRoom() {
-		if (!selected) return
-		openRoom(selected)
+	function joinSelected() {
+		if (selected) openRoom(selected)
 	}
 
 	return (
@@ -106,6 +123,7 @@ function Play() {
 				{visible.map((r) => {
 					const isSelected = selected?.code === r.code
 					const modifiers = hasAnyModifier(r.settings)
+					const specCount = r.spectators?.length ?? 0
 					return (
 						<li key={r.code}>
 							<button
@@ -121,10 +139,19 @@ function Play() {
 									<img src={cardVerse} alt="one card verse" width={20} />
 								</span>
 								<span className="font-bold leading-tight">
-									{r.host} <span className="text-white/50">#{r.code}</span>
+									{r.host} <span className="text-white/70">#{r.code}</span>
 								</span>
-								<span className="flex items-center gap-3 text-sm text-white/70">
+								<span className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-white/70">
 									<span>👤 {r.players.length}/{r.settings.max_players}</span>
+									{r.settings.spectate ? (
+										<span className="text-white/70">
+											👁 {specCount}/{MAX_SPECTATORS}
+										</span>
+									) : (
+										<span className="text-white/40" title="Spectating off">
+											🙈 0/0
+										</span>
+									)}
 									<span className={modifiers ? "text-green" : "text-white/40"}>
 										{modifiers ? "Modifiers on" : "Modifiers off"}
 									</span>
@@ -140,7 +167,7 @@ function Play() {
 				)}
 			</ul>
 
-			<div className="mt-5 flex items-center justify-center gap-3">
+			<div className="mt-5 flex flex-wrap items-center justify-center gap-3">
 				<button
 					type="button"
 					onClick={() => setCreating(true)}
@@ -150,11 +177,17 @@ function Play() {
 				</button>
 				<button
 					type="button"
-					onClick={joinRoom}
-					disabled={!selected}
-					className="rounded-lg bg-yellow px-5 py-2 font-bold text-black transition-transform hover:scale-105 cursor-pointer disabled:opacity-40 disabled:hover:scale-100"
+					onClick={joinSelected}
+					disabled={!selected || (selectedFull && !selectedCanSpectate)}
+					className="rounded-lg bg-white px-5 py-2 font-bold text-black transition-transform hover:scale-105 cursor-pointer disabled:opacity-40 disabled:hover:scale-100"
 				>
-					{selected ? `Join ${selected.host} #${selected.code}` : "Join room"}
+					{!selected
+						? "Join room"
+						: selectedFull
+							? selectedCanSpectate
+								? `Spectate ${selected.host} #${selected.code}`
+								: `${selected.host} #${selected.code} is full`
+							: `Join ${selected.host} #${selected.code}`}
 				</button>
 			</div>
 
