@@ -29,8 +29,10 @@ DRAW_HOOKS: dict[str, DrawHookFn] = {}
 def _run_modifiers(state: GameState, card: Card, player_id: str, target_id: str | None = None) -> None:
 	for name in state.settings.enabled_modifiers:
 		modifier = MODIFIER_REGISTRY.get(name)
-		if modifier is not None:
+		if modifier is not None and target_id is not None:
 			modifier(state, card, player_id, target_id)
+		elif modifier is not None:
+			modifier(state, card, player_id)
 
 def _is_legal_play(state: GameState, card: Card) -> bool:
 	for name in state.settings.enabled_modifiers:
@@ -154,11 +156,12 @@ def start_game(players: list[tuple[str, str]], *, settings: GameSettings | None 
 def play_card(state: GameState, player_id: str, card: Card, *, chosen_color: Color | None = None, target_id: str | None = None) -> GameState:
 	new_state = copy.deepcopy(state)
 	_require_game_not_over(new_state)
-	if new_state.settings.enabled_modifiers.is_enabled("jump in"):
-		if new_state.top_card.card_type != card.card_type or new_state.top_card.color != card.color or new_state.top_card.value != card.value:
+	for name in new_state.settings.enabled_modifiers:
+		if name == "jump in" and (new_state.top_card.card_type != card.card_type or new_state.top_card.color != card.color or new_state.top_card.value != card.value):
 			_require_players_turn(new_state, player_id)
-	else:
-		_require_players_turn(new_state, player_id)
+			break
+		else:
+			_require_players_turn(new_state, player_id)
 
 	player = _get_player(new_state, player_id)
 

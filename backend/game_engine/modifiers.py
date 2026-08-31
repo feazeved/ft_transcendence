@@ -8,37 +8,27 @@ from .state import GameState
 #This is just an example of a modifier, a rule which makes playing a seven card exchange hands with another player
 @register_modifier("seven_swap")
 def seven_swap(state: GameState, card: Card, player_id: str, target_id: str) -> None:
-	if target_id is None or card.card_type != CardType.NUMBER and card.value != 7:
+	if target_id is None or card.card_type != CardType.NUMBER or card.value != 7:
 		return
 
 	idx = next(i for i, p in enumerate(state.players) if p.player_id == player_id)
 	target_idx = next(i for i, p in enumerate(state.players) if p.player_id == target_id)
 	state.players[idx].hand, state.players[target_idx].hand = (state.players[target_idx].hand, state.players[idx].hand)
 
-@register_modifier("zero")
-def zero(state: GameState, card: Card, player_id: str, target_id: str) -> None:
-	if card.card_type != CardType.NUMBER and card.value != 0:
+@register_modifier("zero_swap")
+def zero_swap(state: GameState, card: Card, player_id: str) -> None:
+	if card.card_type != CardType.NUMBER or card.value != 0:
 		return
-	next_hand = list[Card]
 
-	idx = 0
-	for _ in state.players:
-		target_idx = (idx + 1) % len(state.players)
-		next_hand = state.players[idx].hand
-		state.players[target_idx].hand = next_hand
-		idx = target_idx
-
+	n = len(state.players)
+	original_hands = [p.hand for p in state.players]
+	for idx in range(n):
+		target_idx = (idx + state.direction.value) % n
+		state.players[target_idx].hand = original_hands[idx]
 
 @register_modifier("jump_in")
 def jump_in(state: GameState, card: Card, player_id: str) -> None:
-#	if state.top_card.card_type != card.card_type or state.top_card.color != card.color or state.top_card.value != card.value:
 	return
-
-#	state.current_player_index = next(i for i, p in enumerate(state.players) if p.player_id == player_id)
-
-	# while state.current_player_index != idx:
-	# 	_advance_turn(state)
-
 
 _STACK_KEY = "draw_stack"
 _STACKABLE_COUNTS = {CardType.DRAW_TWO: 2, CardType.WILD_DRAW_FOUR: 4}
@@ -93,14 +83,14 @@ def continuous_draw(state: GameState, player_id: str) -> bool:
 		return False
 
 	if state.has_drawn_this_turn:
-	    raise IllegalMove("Ja comprou seu safado, joga ou passa")
+		raise IllegalMove("Ja comprou seu safado, joga ou passa")
 
-    player = _get_player(state, player_id)
+	player = _get_player(state, player_id)
 	for _ in range(100):
 		draw = state.deck.draw(1);
 		player.hand.extend(draw)
 		if _is_legal_play(state, draw[0]):
-		    break
+			break
 
-    state.has_drawn_this_turn = True
+	state.has_drawn_this_turn = True
 	return True
