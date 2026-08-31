@@ -31,6 +31,8 @@ DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 
+AUTH_USER_MODEL = 'game_api.User'
+
 # In development, accept any Host header (LAN IP, container name, tunnel, etc.)
 # so the app is reachable however you browse to it.
 if DEBUG and '*' not in ALLOWED_HOSTS:
@@ -98,7 +100,7 @@ CHANNEL_LAYERS = {
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        #default=postgres://USER:PASSWORD@HOST:PORT/NAME
+        default='postgres://transcendence:transcendence@db:5432/transcendence'
 	)
 }
 

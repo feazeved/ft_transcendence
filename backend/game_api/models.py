@@ -1,7 +1,8 @@
 import uuid
 
 from django.conf import settings
-from django.core.validators import FileExtensionValidator
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -59,11 +60,9 @@ class AiDifficulty(models.TextChoices):
 
 # --- Tables --------------------------------------------------------------
 
-class User(models.Model):
+class User(AbstractUser):
     public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
-    password_hash = models.TextField(blank=True, null=True)
     display_name = models.CharField(max_length=40, blank=True)
     avatar = models.ImageField(
         upload_to=avatar_upload_to,
@@ -146,21 +145,15 @@ class Game(models.Model):
     status = models.CharField(max_length=15, choices=GameStatus.choices, default=GameStatus.PENDING)
     mode = models.CharField(max_length=32, blank=True)
     join_code = models.CharField(max_length=8, blank=True, null=True)
-    max_seats = models.PositiveSmallIntegerField()
-    starting_hand_size = models.PositiveSmallIntegerField()
-    turn_timer_seconds = models.PositiveSmallIntegerField(blank=True, null=True)
-    stacking_draw_two = models.BooleanField(default=False)
+    max_seats = models.PositiveSmallIntegerField(validators=[MinValueValidator(2), MaxValueValidator(10)])
+    draw_stacking = models.BooleanField(default=False)
     jump_in = models.BooleanField(default=False)
     draw_until_playable = models.BooleanField(default=False)
-    seven_zero = models.BooleanField(default=False)
+    seven_swap = models.BooleanField(default=False)
     extra_rules = models.JSONField(blank=True, null=True)
-    deck = models.JSONField(blank=True, null=True)
-    discard = models.JSONField(blank=True, null=True)
-    active_color = models.CharField(max_length=6, choices=CardColor.choices, blank=True, null=True)
-    direction = models.SmallIntegerField(default=1)
-    current_seat = models.SmallIntegerField(blank=True, null=True)
-    pending_draw_count = models.SmallIntegerField(default=0)
+    state = models.JSONField(null=True, blank=True)
     winner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='games_won')
+    created_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
@@ -174,7 +167,6 @@ class GamePlayer(models.Model):
     ai_level = models.CharField(max_length=6, choices=AiDifficulty.choices, blank=True, null=True)
     seat = models.SmallIntegerField()
     display_name = models.CharField(max_length=40, blank=True)
-    hand = models.JSONField(blank=True, null=True)
     is_connected = models.BooleanField(default=False)
     declared_last_card = models.BooleanField(default=False)
     finish_position = models.SmallIntegerField(blank=True, null=True)
