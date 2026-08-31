@@ -100,7 +100,7 @@ CHANNEL_LAYERS = {
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        default='postgres://transcendence:transcendence@db:5432/transcendence'
+        default='postgres://transcendence:transcendence@localhost:5432/transcendence'
 	)
 }
 
