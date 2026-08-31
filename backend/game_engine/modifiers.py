@@ -5,7 +5,6 @@ from .engine import (_advance_turn, _is_legal_play, _get_player, register_draw_h
 from .engine import IllegalMove
 from .state import GameState
 
-#This is just an example of a modifier, a rule which makes playing a seven card exchange hands with another player
 @register_modifier("seven_swap")
 def seven_swap(state: GameState, card: Card, player_id: str, target_id: str) -> None:
 	if target_id is None or card.card_type != CardType.NUMBER or card.value != 7:
@@ -76,20 +75,19 @@ def _draw_stacking_draw(state: GameState, player_id: str) -> bool:
 
 	return True
 
-
-@register_draw_hook("continuous_draw")
-def continuous_draw(state: GameState, player_id: str) -> bool:
+@register_draw_hook("draw_until_playable")
+def draw_until_playable(state: GameState, player_id: str) -> bool:
 	if _active_stack(state) is not None:
 		return False
 
 	if state.has_drawn_this_turn:
-		raise IllegalMove("Ja comprou seu safado, joga ou passa")
+		raise IllegalMove("Already drew this turn, play a card or pass")
 
 	player = _get_player(state, player_id)
 	for _ in range(100):
-		draw = state.deck.draw(1);
-		player.hand.extend(draw)
-		if _is_legal_play(state, draw[0]):
+		drawn = state.deck.draw(1)
+		player.hand.extend(drawn)
+		if _is_legal_play(state, drawn[0]):
 			break
 
 	state.has_drawn_this_turn = True
