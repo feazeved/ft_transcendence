@@ -46,7 +46,7 @@ def test_start_game_rejects_too_few_players():
 
 def test_start_game_rejects_too_many_players():
 	with pytest.raises(ValueError):
-		start_game(make_players(7))
+		start_game(make_players(11))
 
 
 def test_start_game_deals_seven_cards_each():
