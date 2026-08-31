@@ -221,8 +221,41 @@ def test_seven_swap_enabled_swaps_hands():
 	seven = Card(color=state.current_color, card_type=CardType.NUMBER, value=7)
 	state.players[0].hand = [seven, FILLER]
 	state.current_player_index = 0
-	new_state = play_card(state, "p0", seven)
+	new_state = play_card(state, "p0", seven, target_id="p1")
 	assert new_state.players[0].hand == p1_hand_before
+
+
+def test_zero_swap_disabled_by_default():
+	state = start_game(make_players(4), rng=random.Random(23))
+	zero = Card(color=state.current_color, card_type=CardType.NUMBER, value=0)
+	p1_hand_before = list(state.players[1].hand)
+	p2_hand_before = list(state.players[2].hand)
+	p3_hand_before = list(state.players[3].hand)
+	state.players[0].hand = [zero, FILLER]
+	p0_hand_before = [FILLER]
+	state.current_player_index = 0
+	new_state = play_card(state, "p0", zero)
+	assert new_state.players[0].hand == p0_hand_before
+	assert new_state.players[1].hand == p1_hand_before
+	assert new_state.players[2].hand == p2_hand_before
+	assert new_state.players[3].hand == p3_hand_before
+
+
+def test_zero_swap_enabled_swaps_hands():
+	settings = GameSettings(enabled_modifiers=frozenset({"zero_swap"}))
+	state = start_game(make_players(4), settings=settings, rng=random.Random(23))
+	zero = Card(color=state.current_color, card_type=CardType.NUMBER, value=0)
+	p1_hand_before = list(state.players[1].hand)
+	p2_hand_before = list(state.players[2].hand)
+	p3_hand_before = list(state.players[3].hand)
+	state.players[0].hand = [zero, FILLER]
+	p0_hand_before = [FILLER]
+	state.current_player_index = 0
+	new_state = play_card(state, "p0", zero)
+	assert new_state.players[0].hand == p3_hand_before
+	assert new_state.players[1].hand == p0_hand_before
+	assert new_state.players[2].hand == p1_hand_before
+	assert new_state.players[3].hand == p2_hand_before
 
 
 def test_state_is_never_mutated_in_place():

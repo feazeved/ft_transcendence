@@ -71,7 +71,7 @@ class GameModelTests(TestCase):
 
 	def test_max_seats_accepts_ten(self):
 		game = Game(max_seats=10, starting_hand_size=7)
-		game.full_clean()  # should not raise
+		game.full_clean()
 
 	def test_max_seats_rejects_fewer_than_two(self):
 		game = Game(max_seats=1, starting_hand_size=7)
@@ -133,7 +133,7 @@ class GameStatePersistenceTests(TestCase):
 		self.assertEqual(final_state.top_card, legal)
 
 	def test_ten_player_game_persists_correctly(self):
-		players = [(str(u.id), u.username) for u in self.users]  # 10 users
+		players = [(str(u.id), u.username) for u in self.users]
 		engine_state = start_game(players, rng=random.Random(77))
 		game = Game.objects.create(
 			max_seats=10, starting_hand_size=7, status='in_progress', state=state_to_dict(engine_state)
