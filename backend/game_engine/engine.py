@@ -141,8 +141,8 @@ def register_draw_hook(name: str):
 	return decorator
 
 def start_game(players: list[tuple[str, str]], *, settings: GameSettings | None = None, rng: random.Random | None = None, hand_size: int = 7) -> GameState:
-	if not (2 <= len(players) <= 6):
-		raise ValueError(f"Game needs 2-6 players, got {len(players)}")
+	if not (2 <= len(players) <= 10):
+		raise ValueError(f"Game needs 2-10 players, got {len(players)}")
 
 	deck = Deck(rng=rng)
 	dealt_players = [Player(player_id=pid, name=name, hand=deck.draw(hand_size)) for pid, name in players]

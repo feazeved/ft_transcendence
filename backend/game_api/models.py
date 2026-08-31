@@ -146,6 +146,8 @@ class Game(models.Model):
     mode = models.CharField(max_length=32, blank=True)
     join_code = models.CharField(max_length=8, blank=True, null=True)
     max_seats = models.PositiveSmallIntegerField(validators=[MinValueValidator(2), MaxValueValidator(10)])
+    starting_hand_size = models.PositiveSmallIntegerField()
+    turn_timer_seconds = models.PositiveIntegerField(blank=True, null=True)
     draw_stacking = models.BooleanField(default=False)
     jump_in = models.BooleanField(default=False)
     draw_until_playable = models.BooleanField(default=False)
