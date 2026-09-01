@@ -152,6 +152,7 @@ class Game(models.Model):
     jump_in = models.BooleanField(default=False)
     draw_until_playable = models.BooleanField(default=False)
     seven_swap = models.BooleanField(default=False)
+    zero_swap = models.BooleanField(default=False)
     extra_rules = models.JSONField(blank=True, null=True)
     state = models.JSONField(null=True, blank=True)
     winner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='games_won')
