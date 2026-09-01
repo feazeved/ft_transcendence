@@ -220,7 +220,7 @@ if env.bool('DJANGO_EMAIL_USE_SMTP', default=False):
 			'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
 			'OPTIONS': {
 				'host': env('EMAIL_HOST'),
-				'use_tls': env.bool('EMAIL_USE_TLS', default=True)
+				'use_tls': env.bool('EMAIL_USE_TLS', default=True),
 				'username': env('EMAIL_HOST_USER'),
 				'password': env('EMAIL_HOST_PASSWORD'),
 			},
