@@ -51,6 +51,14 @@ INSTALLED_APPS = [
 	# Third-party
 	'rest_framework',
 	'channels',
+	# Authentication
+	'allauth',
+	'allauth.account',
+	'allauth.socialaccount',
+	'allauth.socialaccount.providers.google',
+	'game_api.providers.fortytwo',
+	'dj_rest_auth',
+	'dj_rest_auth.registration',
 	# Local
 	'game_api',
 ]
@@ -63,6 +71,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+	'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -104,6 +113,55 @@ DATABASES = {
 	)
 }
 
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+	'django.contrib.auth.backends.ModelBackend',
+	'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['username*', 'email*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_ADAPTER = 'game_api.adapters.AccountAdapter'
+
+SOCIALACCOUNT_PROVIDERS = {
+	'google': {
+		'SCOPE': ['profile', 'email'],
+		'APP': {
+			'client_id': env('GOOGLE_OAUTH_CLIENT_ID', default=''),
+			'secret': env('GOOGLE_OAUTH_CLIENT_SECRET', default=''),
+		},
+	},
+	'fortytwo': {
+		'APP': {
+			'client_id': env('FORTYTWO_OAUTH_CLIENT_ID', default=''),
+			'secret': env('FORTYTWO_OAUTH_CLIENT_SECRET', default=''),
+		},
+	},
+}
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+REST_AUTH = {
+	'SESSION_LOGIN': True,
+	'USE_JWT': False,
+	'TOKEN_MODEL': None,
+	'REGISTER_SERIALIZER': 'game_api.serializers.RegisterSerializer',
+	'PASSWORD_RESET_SERIALIZER': 'game_api.serializers.PasswordResetSerializer',
+}
+
+REST_FRAMEWORK = {
+	'DEFAULT_AUTHENTICATION_CLASSES': [
+		'rest_framework.authentication.SessionAuthentication',
+	],
+	'DEFAULT_PERMISSIONS_CLASSES': [
+		'rest_framework.permissions.IsAuthenticated',
+	],
+}
+
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
@@ -152,8 +210,25 @@ MEDIA_ROOT = env('DJANGO_MEDIA_ROOT', default=str(BASE_DIR / 'media'))
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173').rstrip('/')
+
+DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='no-reply@localhost')
+
+if env.bool('DJANGO_EMAIL_USE_SMTP', default=False):
+	MAILERS = {
+		'default': {
+			'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+			'OPTIONS': {
+				'host': env('EMAIL_HOST'),
+				'use_tls': env.bool('EMAIL_USE_TLS', default=True)
+				'username': env('EMAIL_HOST_USER'),
+				'password': env('EMAIL_HOST_PASSWORD'),
+			},
+		},
+	}
+else:
+	MAILERS = {
+		'default': {
+			'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+		},
+	}
