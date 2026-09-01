@@ -26,10 +26,15 @@ PLAY_HOOKS: dict[str, PlayHookFn] = {}
 DrawHookFn = Callable[[GameState, str], bool]
 DRAW_HOOKS: dict[str, DrawHookFn] = {}
 
-def _run_modifiers(state: GameState, card: Card, player_id: str) -> None:
+TurnBypassHookFn = Callable[[GameState, Card, str], bool]
+TURN_BYPASS_HOOKS: dict[str, TurnBypassHookFn] = {}
+
+def _run_modifiers(state: GameState, card: Card, player_id: str, target_id: str | None = None) -> None:
 	for name in state.settings.enabled_modifiers:
 		modifier = MODIFIER_REGISTRY.get(name)
-		if modifier is not None:
+		if modifier is not None and target_id is not None:
+			modifier(state, card, player_id, target_id)
+		elif modifier is not None:
 			modifier(state, card, player_id)
 
 def _is_legal_play(state: GameState, card: Card) -> bool:
@@ -140,6 +145,13 @@ def register_draw_hook(name: str):
 
 	return decorator
 
+def register_turn_bypass_hook(name: str):
+	def decorator(fn: TurnBypassHookFn) -> TurnBypassHookFn:
+		TURN_BYPASS_HOOKS[name] = fn
+		return fn
+
+	return decorator
+
 def start_game(players: list[tuple[str, str]], *, settings: GameSettings | None = None, rng: random.Random | None = None, hand_size: int = 7) -> GameState:
 	if not (2 <= len(players) <= 10):
 		raise ValueError(f"Game needs 2-10 players, got {len(players)}")
@@ -151,10 +163,19 @@ def start_game(players: list[tuple[str, str]], *, settings: GameSettings | None 
 	_resolve_opening_card(state)
 	return state
 
-def play_card(state: GameState, player_id: str, card: Card, *, chosen_color: Color | None = None) -> GameState:
+def play_card(state: GameState, player_id: str, card: Card, *, chosen_color: Color | None = None, target_id: str | None = None) -> GameState:
 	new_state = copy.deepcopy(state)
 	_require_game_not_over(new_state)
-	_require_players_turn(new_state, player_id)
+
+	bypassed = False
+	for name in new_state.settings.enabled_modifiers:
+		hook = TURN_BYPASS_HOOKS.get(name)
+		if hook is not None and hook(new_state, card, player_id):
+			bypassed = True
+			break
+	if not bypassed:
+		_require_players_turn(new_state, player_id)
+
 	player = _get_player(new_state, player_id)
 
 	if card not in player.hand:
@@ -184,7 +205,7 @@ def play_card(state: GameState, player_id: str, card: Card, *, chosen_color: Col
 	if not handled:
 		_apply_standard_effects(new_state, card)
 
-	_run_modifiers(new_state, card, player_id)
+	_run_modifiers(new_state, card, player_id, target_id)
 	return new_state
 
 def draw_card(state: GameState, player_id: str) -> GameState:
@@ -202,8 +223,8 @@ def draw_card(state: GameState, player_id: str) -> GameState:
 		raise IllegalMove("Already drew this turn, play a card or pass")
 
 	player = _get_player(new_state, player_id)
-
 	player.hand.extend(new_state.deck.draw(1))
+
 	new_state.has_drawn_this_turn = True
 
 	return new_state
@@ -219,4 +240,3 @@ def pass_turn(state: GameState, player_id: str) -> GameState:
 
 	_advance_turn(new_state)
 	return new_state
-
