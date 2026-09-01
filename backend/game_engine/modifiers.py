@@ -26,7 +26,7 @@ def zero_swap(state: GameState, card: Card, player_id: str) -> None:
 		state.players[target_idx].hand = original_hands[idx]
 
 @register_modifier("jump_in")
-def jump_in(state: GameState, card: Card, player_id: str) -> None:
+def jump_in() -> None:
 	return
 
 _STACK_KEY = "draw_stack"
