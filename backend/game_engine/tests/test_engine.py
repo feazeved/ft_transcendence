@@ -214,6 +214,18 @@ def test_seven_swap_disabled_by_default():
 	assert new_state.players[1].hand == hand_before
 
 
+def test_seven_swap_enabled_with_no_target_keeps_own_hand():
+	settings = GameSettings(enabled_modifiers=frozenset({"seven_swap"}))
+	state = start_game(make_players(3), settings=settings, rng=random.Random(23))
+	p1_hand_before = list(state.players[1].hand)
+	seven = Card(color=state.current_color, card_type=CardType.NUMBER, value=7)
+	state.players[0].hand = [seven, FILLER]
+	state.current_player_index = 0
+	new_state = play_card(state, "p0", seven)
+	assert new_state.players[0].hand == [FILLER]
+	assert new_state.players[1].hand == p1_hand_before
+
+
 def test_seven_swap_enabled_swaps_hands():
 	settings = GameSettings(enabled_modifiers=frozenset({"seven_swap"}))
 	state = start_game(make_players(2), settings=settings, rng=random.Random(23))

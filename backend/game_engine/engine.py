@@ -32,10 +32,8 @@ TURN_BYPASS_HOOKS: dict[str, TurnBypassHookFn] = {}
 def _run_modifiers(state: GameState, card: Card, player_id: str, target_id: str | None = None) -> None:
 	for name in state.settings.enabled_modifiers:
 		modifier = MODIFIER_REGISTRY.get(name)
-		if modifier is not None and target_id is not None:
+		if modifier is not None:
 			modifier(state, card, player_id, target_id)
-		elif modifier is not None:
-			modifier(state, card, player_id)
 
 def _is_legal_play(state: GameState, card: Card) -> bool:
 	for name in state.settings.enabled_modifiers:
