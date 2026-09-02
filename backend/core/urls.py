@@ -25,6 +25,7 @@ urlpatterns = [
 	path('api/auth/csrf/', csrf, name='csrf'),
 	path('api/auth/', include('dj_rest_auth.urls')),
 	path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
+	path('api/', include('game_api.urls')),
 	path('accounts/', include('allauth.urls')),
 ]
 
