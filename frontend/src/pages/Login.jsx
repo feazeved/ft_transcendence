@@ -22,12 +22,12 @@ function Login() {
     setError("");
 
     try {
-      const data = await api.post("/auth/login/", { email, password });
-      // `data.user` carries the account's real fields (username chosen at
-      // registration, avatar, …) straight from the DB. Until the backend sends
-      // it / signs a JWT with those claims, auth.jsx falls back to a generic
-      // "player" placeholder — we never invent a username from the email.
-      login(data?.user, data?.token);
+      // Session login (dj-rest-auth's /auth/login/ with SESSION_LOGIN) responds
+      // 204 with an empty body — no user data to read off it. Fetch the real
+      // account straight after, the same way OAuthCallback.jsx does.
+      await api.post("/auth/login/", { email, password });
+      const user = await api.get("/auth/user/");
+      login(user);
       navigate(from, { replace: true });
     } catch (err) {
       console.error("Error during login:", err.message);
@@ -76,6 +76,8 @@ function Login() {
 				<div className="flex gap-3">
 			<button
 				id="google-login-btn"
+				type="button"
+				onClick={() => { window.location.href = "/accounts/google/login/"; }}
 				className="flex-1 inline-flex items-center justify-center gap-2 bg-white text-[#3c4043] border border-[#747775] rounded h-10 px-4 font-medium text-sm hover:scale-105 cursor-pointer"
 			>
 				<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://w3.org">
@@ -88,6 +90,8 @@ function Login() {
 			</button>
 			<button
 				id="fortyTwo-login-btn"
+				type="button"
+				onClick={() => { window.location.href = "/accounts/fortytwo/login/"; }}
 				className="flex-1 inline-flex items-center justify-center gap-2 bg-white text-[#3c4043] border border-[#747775] rounded h-10 px-4 font-medium text-sm hover:scale-105 cursor-pointer"
 			>
 				<img src={ft} alt="forty two logo svg" className="w-4.5 h-4.5" />

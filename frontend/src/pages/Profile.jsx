@@ -17,12 +17,18 @@ import logoutIcon from "../assets/logout.svg"
 const DEFAULT_AVATAR = "/profile/default.jpg"
 
 function Profile() {
-	// mockup data, replace with real info from the database
-	const [email, setEmail] = useState("dani23213213213213213213123213l@gmail.com")
-	const [name, setName] = useState("daniel")
-	const [username, setUsername] = useState("simba")
-	const [pass, setPass] = useState("1235214124151515152512512512467")
-	const [avatar, setAvatar] = useState(DEFAULT_AVATAR)
+	const { user, logout } = useAuth()
+
+	const [email, setEmail] = useState(user?.email ?? "")
+	const [name, setName] = useState(
+		[user?.first_name, user?.last_name].filter(Boolean).join(" ")
+	)
+	const [username, setUsername] = useState(user?.username ?? "")
+	// Never sent to us by the backend — a fixed-length placeholder just gives
+	// the masked dots below something to render and buildChanges something to diff.
+	const [pass, setPass] = useState("& I gt78-1jd25")
+	const [avatar, setAvatar] = useState(user?.avatar ?? DEFAULT_AVATAR)
+	// TODO(backend): no stats endpoint yet — still mock until one exists.
 	const wins = 20
 	const lose = 30
 	const winRate = Math.round((wins / (wins + lose)) * 100)
@@ -38,7 +44,6 @@ function Profile() {
 	const [pickerOpen, setPickerOpen] = useState(false)
 
 	const navigate = useNavigate()
-	const { logout } = useAuth()
 
 	const handleLogout = () => {
 		logout()
@@ -207,7 +212,8 @@ function Profile() {
 				{editing ? (
 					<div className="flex justify-center gap-3">
 						<button
-							type="submit"
+							type="button"
+							onClick={save}
 							disabled={saving}
 							className="rounded-lg border border-white px-4 py-2 transition-transform hover:scale-105 cursor-pointer disabled:opacity-50 disabled:hover:scale-100"
 						>

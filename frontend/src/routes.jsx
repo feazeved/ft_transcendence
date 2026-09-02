@@ -16,6 +16,7 @@ const Leaderboard = lazy(() => import('@/pages/Leaderboard.jsx'))
 const Login = lazy(() => import('@/pages/Login.jsx'))
 const Friends = lazy(() => import('@/pages/Friends.jsx'))
 const Register = lazy(() => import('@/pages/Register.jsx'))
+const OAuthCallback = lazy(() => import('@/pages/OAuthCallback.jsx'))
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy.jsx'))
 const TermsOfService = lazy(() => import('@/pages/TermsOfService.jsx'))
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'))
@@ -58,6 +59,7 @@ function AppRoutes() {
 					<Route path="/login" element={<Login />} />
 					<Route path="/friends" element={<Friends />} />
 					<Route path="/register" element={<Register />} />
+					<Route path="/oauth/callback" element={<OAuthCallback />} />
 					<Route path="/privacy-policy" element={<PrivacyPolicy />} />
 					<Route path="/terms-of-service" element={<TermsOfService />} />
 					<Route path="*" element={<NotFound />} />
