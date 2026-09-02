@@ -218,11 +218,21 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173').rstrip('/')
 DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='no-reply@localhost')
 
 if env.bool('DJANGO_EMAIL_USE_SMTP', default=False):
-	EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-	EMAIL_HOST = env('EMAIL_HOST')
-	EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-	EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-	EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-	EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+	MAILERS = {
+		'default': {
+			'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+			'OPTIONS': {
+				'host': env('EMAIL_HOST'),
+				'port': env.int('EMAIL_PORT', default=587),
+				'use_tls': env.bool('EMAIL_USE_TLS', default=True),
+				'username': env('EMAIL_HOST_USER'),
+				'password': env('EMAIL_HOST_PASSWORD'),
+			},
+		},
+	}
 else:
-	EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+	MAILERS = {
+		'default': {
+			'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+		},
+	}
