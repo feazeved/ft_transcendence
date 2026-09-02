@@ -73,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 	'allauth.account.middleware.AccountMiddleware',
+	'game_api.middleware.UpdateLastSeenMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -150,6 +151,7 @@ REST_AUTH = {
 	'TOKEN_MODEL': None,
 	'REGISTER_SERIALIZER': 'game_api.serializers.RegisterSerializer',
 	'PASSWORD_RESET_SERIALIZER': 'game_api.serializers.PasswordResetSerializer',
+	'USER_DETAILS_SERIALIZER': 'game_api.serializers.UserDetailsSerializer',
 }
 
 REST_FRAMEWORK = {
