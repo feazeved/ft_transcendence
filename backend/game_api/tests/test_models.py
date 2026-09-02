@@ -10,7 +10,7 @@ from game_engine.deck import STANDARD_COLORS
 from game_engine.engine import play_card, start_game
 from game_engine.serialization import state_from_dict, state_to_dict
 
-from .models import Game, GamePlayer
+from ..models import Game, GamePlayer
 
 User = get_user_model()
 

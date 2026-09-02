@@ -6,7 +6,7 @@ from .engine import IllegalMove
 from .state import GameState
 
 @register_modifier("seven_swap")
-def seven_swap(state: GameState, card: Card, player_id: str, target_id: str) -> None:
+def seven_swap(state: GameState, card: Card, player_id: str, target_id: str | None = None) -> None:
 	if target_id is None or card.card_type != CardType.NUMBER or card.value != 7:
 		return
 
@@ -15,7 +15,7 @@ def seven_swap(state: GameState, card: Card, player_id: str, target_id: str) -> 
 	state.players[idx].hand, state.players[target_idx].hand = (state.players[target_idx].hand, state.players[idx].hand)
 
 @register_modifier("zero_swap")
-def zero_swap(state: GameState, card: Card, player_id: str) -> None:
+def zero_swap(state: GameState, card: Card, player_id: str, target_id: str | None = None) -> None:
 	if card.card_type != CardType.NUMBER or card.value != 0:
 		return
 
