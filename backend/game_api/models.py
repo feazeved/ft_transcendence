@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 
 def avatar_upload_to(instance, filename):
@@ -80,6 +81,7 @@ class User(AbstractUser):
     deleted_at = models.DateTimeField(blank=True, null=True)
 
     DEFAULT_AVATAR_URL = f'{settings.STATIC_URL}avatars/default.png'
+    ONLINE_THRESHOLD = timezone.timedelta(minutes=5)
 
     @property
     def avatar_url(self):
@@ -87,6 +89,12 @@ class User(AbstractUser):
         if self.avatar:
             return self.avatar.url
         return self.DEFAULT_AVATAR_URL
+
+    @property
+    def is_online(self):
+        if self.last_seen_at is None:
+            return False
+        return timezone.now() - self.last_seen_at < self.ONLINE_THRESHOLD
 
     def __str__(self):
         return self.username
