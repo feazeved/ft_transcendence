@@ -96,11 +96,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
 
+REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')
+
 CHANNEL_LAYERS = {
 	'default': {
 		'BACKEND': 'channels_redis.core.RedisChannelLayer',
 		'CONFIG': {
-			'hosts': [env('REDIS_URL', default='redis://redis:6379/0')],
+			'hosts': [REDIS_URL],
 		},
 	}
 }
