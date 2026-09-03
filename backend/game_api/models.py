@@ -97,6 +97,10 @@ class User(AbstractUser):
             return False
         return timezone.now() - self.last_seen_at < self.ONLINE_THRESHOLD
 
+    def accepted_friend_ids(self):
+        accepted = Friendship.objects.filter(Q(requester=self) | Q(addressee=self), status=FriendshipStatus.ACCEPTED).values_list("requester_id", "addressee_id")
+        return [addressee_id if requester_id == self.pk else requester_id for requester_id, addressee_id in accepted]
+
     def __str__(self):
         return self.username
 
