@@ -4,12 +4,9 @@ from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from pathlib import Path
+from django.conf import settings
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-env = environ.Env()
-environ.Env.read_env(BASE_DIR / '.env')
-FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+FRONTEND_URL = settings.FRONTEND_URL
 User = get_user_model()
 
 class RegistrationTests(TestCase):

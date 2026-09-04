@@ -96,7 +96,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
 
-REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')
+REDIS_URL = env('REDIS_URL', default='redis://redis:6379/0')
 
 CHANNEL_LAYERS = {
 	'default': {
@@ -113,7 +113,7 @@ CHANNEL_LAYERS = {
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        default='postgres://transcendence:transcendence@localhost:5432/transcendence'
+        default='postgres://transcendence:transcendence@db:5432/transcendence'
 	)
 }
 
