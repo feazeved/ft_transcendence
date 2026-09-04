@@ -6,17 +6,17 @@ from .cards import Card, CardType, Color
 from .deck import Deck
 from .state import Direction, GameSettings, GameState, Player
 
-def _card_to_dict(card: Card) -> dict:
+def card_to_dict(card: Card) -> dict:
 	return {"color": card.color.value, "card_type": card.card_type.value, "value": card.value}
 
-def _card_from_dict(data: dict) -> Card:
+def card_from_dict(data: dict) -> Card:
 	return Card(color=Color(data["color"]), card_type=CardType(data["card_type"]), value=data.get("value"))
 
 def state_to_dict(state: GameState) -> dict:
 	return {
-		"players": [{"player_id": p.player_id, "name": p.name, "hand": [_card_to_dict(c) for c in p.hand]} for p in state.players],
-		"draw_pile": [_card_to_dict(c) for c in state.deck.draw_pile],
-		"top_card": _card_to_dict(state.top_card),
+		"players": [{"player_id": p.player_id, "name": p.name, "hand": [card_to_dict(c) for c in p.hand]} for p in state.players],
+		"draw_pile": [card_to_dict(c) for c in state.deck.draw_pile],
+		"top_card": card_to_dict(state.top_card),
 		"current_color": state.current_color.value,
 		"current_player_index": state.current_player_index,
 		"direction": state.direction.value,
@@ -27,13 +27,13 @@ def state_to_dict(state: GameState) -> dict:
 	}
 
 def state_from_dict(data: dict) -> GameState:
-	players = [Player(player_id=p["player_id"], name=p["name"], hand=[_card_from_dict(c) for c in p["hand"]]) for p in data["players"]]
-	deck = Deck(draw_pile=[_card_from_dict(c) for c in data["draw_pile"]])
+	players = [Player(player_id=p["player_id"], name=p["name"], hand=[card_from_dict(c) for c in p["hand"]]) for p in data["players"]]
+	deck = Deck(draw_pile=[card_from_dict(c) for c in data["draw_pile"]])
 
 	return GameState(
 		players=players,
 		deck=deck,
-		top_card=_card_from_dict(data["top_card"]),
+		top_card=card_from_dict(data["top_card"]),
 		current_color=Color(data["current_color"]),
 		current_player_index=data["current_player_index"],
 		direction=Direction(data["direction"]),

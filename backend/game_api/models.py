@@ -148,6 +148,9 @@ class TournamentParticipant(models.Model):
         return f'{self.user_id} in {self.tournament_id}'
 
 
+MODIFIER_FIELDS = ("draw_stacking", "jump_in", "draw_until_playable", "seven_swap", "zero_swap")
+
+
 class Game(models.Model):
     public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     host = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='hosted_games')
