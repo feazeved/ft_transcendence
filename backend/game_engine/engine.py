@@ -14,7 +14,7 @@ class IllegalMove(Exception):
 class GameOver(Exception):
 	"""Raised when an action is attempted after the game has already been won."""
 
-ModifierFn = Callable[[GameState, Card, str], None]
+ModifierFn = Callable[[GameState, Card, str, "str | None"], None]
 MODIFIER_REGISTRY: dict[str, ModifierFn] = {}
 
 LegalityHookFn = Callable[[GameState, Card], "bool | None"]

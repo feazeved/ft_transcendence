@@ -226,7 +226,7 @@ def test_seven_swap_enabled_with_no_target_keeps_own_hand():
 	assert new_state.players[1].hand == p1_hand_before
 
 
-def test_seven_swap_enabled_swaps_hands():
+def test_seven_swap_enabled_with_explicit_target_swaps_with_that_player():
 	settings = GameSettings(enabled_modifiers=frozenset({"seven_swap"}))
 	state = start_game(make_players(2), settings=settings, rng=random.Random(23))
 	p1_hand_before = list(state.players[1].hand)
