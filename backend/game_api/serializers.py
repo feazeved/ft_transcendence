@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Friendship
+from .models import Friendship, Game, GamePlayer, MODIFIER_FIELDS as _MODIFIER_FIELDS
 
 User = get_user_model()
 
@@ -81,3 +81,37 @@ class FriendshipTargetSerializer(serializers.Serializer):
 		self.target = target
 
 		return username
+
+class GamePlayerSerializer(serializers.ModelSerializer):
+	user = PublicProfileSerializer(read_only=True)
+
+	class Meta:
+		model = GamePlayer
+		fields = ("id", "user", "kind", "seat", "display_name", "is_connected", "finish_position")
+		read_only_fields = fields
+
+class GameListSerializer(serializers.ModelSerializer):
+	host = PublicProfileSerializer(read_only=True)
+	player_count = serializers.SerializerMethodField()
+
+	class Meta:
+		model = Game
+		fields = ("public_id", "host", "status", "mode", "max_seats", "player_count", *_MODIFIER_FIELDS, "created_at")
+		read_only_fields = fields
+
+	def get_player_count(self, game):
+		return game.players.count()
+
+class GameDetailSerializer(GameListSerializer):
+	players = GamePlayerSerializer(many=True, read_only=True)
+	winner = PublicProfileSerializer(read_only=True)
+
+	class Meta(GameListSerializer.Meta):
+		fields = GameListSerializer.Meta.fields + ("starting_hand_size", "turn_timer_seconds", "players", "winner", "finished_at")
+		read_only_fields = fields
+
+class GameCreateSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Game
+		fields = ("mode", "max_seats", "starting_hand_size", "turn_timer_seconds", *_MODIFIER_FIELDS)
+		extra_kwargs = {"max_seats": {"default": 4}, "starting_hand_size": {"default": 7}}
