@@ -1,8 +1,15 @@
+import environ
+
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / '.env')
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 User = get_user_model()
 
 class RegistrationTests(TestCase):
@@ -120,7 +127,7 @@ class EmailTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.assertEqual(len(mail.outbox), 1)
 		body = mail.outbox[0].body
-		self.assertIn('http://localhost:5173/reset-password/', body)
+		self.assertIn(FRONTEND_URL + '/reset-password/', body)
 		self.assertNotIn('password_reset_confirm', body)
 
 	def test_signup_confirmation_email_links_to_the_frontend(self):
@@ -136,7 +143,7 @@ class EmailTests(TestCase):
 		self.assertEqual(response.status_code, 204)
 		self.assertEqual(len(mail.outbox), 1)
 		body = mail.outbox[0].body
-		self.assertIn('http://localhost:5173/confirm-email/', body)
+		self.assertIn(FRONTEND_URL + '/confirm-email/', body)
 		self.assertNotIn('account_confirm_email', body)
 
 	def test_login_works_before_verifying_email(self):

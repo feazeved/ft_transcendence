@@ -6,7 +6,6 @@ import ModalRoute from '@/components/ModalRoute.jsx'
 // lazy() delays loading a page's code until it's actually needed.
 // "/" will not download NotFound's code until you access 404.
 const Home = lazy(() => import('@/pages/Home.jsx'))
-const Test = lazy(() => import('@/pages/Test.jsx'))
 const Tournaments = lazy(() => import('@/pages/Tournaments.jsx'))
 const Profile = lazy(() => import('@/pages/Profile.jsx'))
 const Play = lazy(() => import('@/pages/Play.jsx'))
@@ -47,7 +46,6 @@ function AppRoutes() {
 			<Routes location={background || location}>
 				<Route element={<Layout />}>
 					<Route path="/" element={<Home />} />
-					<Route path="/test" element={<Test />} />
 					<Route path="/tournament" element={<Tournaments />} />
 					<Route path="/profile" element={<Profile />} />
 					<Route path="/leaderboard" element={<Leaderboard />} />
