@@ -30,7 +30,13 @@ export function AuthProvider({ children }) {
 	// Call after a successful login. `nextUser` is whatever the backend returned
 	// about the account (later: the decoded JWT payload).
 	const login = useCallback((nextUser = {}, token) => {
-		const value = { username: "player", avatar: DEFAULT_AVATAR, ...nextUser }
+		// The backend's field is `avatar_url` (see UserDetailsSerializer); NavBar
+		// and everything else here reads `avatar` — normalize once, at the source.
+		const value = {
+			username: "player",
+			...nextUser,
+			avatar: nextUser.avatar_url ?? nextUser.avatar ?? DEFAULT_AVATAR,
+		}
 		try {
 			localStorage.setItem(USER_KEY, JSON.stringify(value))
 			if (token) localStorage.setItem(TOKEN_KEY, token)

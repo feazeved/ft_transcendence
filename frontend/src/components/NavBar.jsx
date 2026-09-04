@@ -42,7 +42,7 @@ const Header = () => {
 						<img
 							src={user.avatar}
 							alt={`${user.username} profile`}
-							className="rounded-full object-cover w-11"
+							className="rounded-full object-cover w-11 h-11"
 						/>
 					</HoverLink>
 				) : (
