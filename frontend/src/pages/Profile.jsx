@@ -3,7 +3,7 @@
 // no min-h-screen, no back link — the page has the navbar, the modal has its
 // own close button.
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import PasswordInput from "../components/PasswordInput.jsx"
 import AvatarPicker from "../components/AvatarPicker.jsx"
@@ -16,18 +16,31 @@ import logoutIcon from "../assets/logout.svg"
 // public/profile, so they're served from the site root (see AvatarPicker).
 const DEFAULT_AVATAR = "/profile/default.jpg"
 
-function Profile() {
-	const { user, logout } = useAuth()
+// A preset avatar is just a static path on our own origin — refetch it as a
+// Blob so it can go through the same multipart `avatar` field as a real
+// upload (the backend's avatar field only accepts an uploaded file, not a
+// path string).
+async function toUploadableFile(avatar) {
+	if (avatar instanceof File) return avatar
+	const response = await fetch(avatar)
+	const blob = await response.blob()
+	return new File([blob], avatar.split("/").pop(), { type: blob.type })
+}
 
-	const [email, setEmail] = useState(user?.email ?? "")
-	const [name, setName] = useState(
-		[user?.first_name, user?.last_name].filter(Boolean).join(" ")
-	)
+function Profile() {
+	const { user, login, logout } = useAuth()
+
+	// Read-only for now: dj-rest-auth keeps email out of this endpoint (email
+	// changes are meant to go through a verification flow we don't have yet),
+	// so it's shown but never sent.
+	const [email] = useState(user?.email ?? "")
+	const [name, setName] = useState(user?.display_name ?? "")
 	const [username, setUsername] = useState(user?.username ?? "")
 	// Never sent to us by the backend — a fixed-length placeholder just gives
-	// the masked dots below something to render and buildChanges something to diff.
-	const [pass, setPass] = useState("& I gt78-1jd25")
-	const [avatar, setAvatar] = useState(user?.avatar ?? DEFAULT_AVATAR)
+	// the masked dots below something to render. There's no password-change
+	// endpoint yet, so this is display-only and never included in a save.
+	const [pass] = useState("& I gt78-1jd25")
+	const [avatar, setAvatar] = useState(user?.avatar_url ?? DEFAULT_AVATAR)
 	// TODO(backend): no stats endpoint yet — still mock until one exists.
 	const wins = 20
 	const lose = 30
@@ -37,11 +50,26 @@ function Profile() {
 	// The stats below are computed elsewhere and never editable.
 	const [editing, setEditing] = useState(false)
 	const [draft, setDraft] = useState({ name, username, email, pass, avatar })
+	// What the avatar <img> actually renders while editing — a plain URL even
+	// when draft.avatar is a freshly-picked File (see onSelect below).
+	const [avatarPreview, setAvatarPreview] = useState(avatar)
+	const objectUrlRef = useRef(null)
 	// Set while the save request is in flight; `error` holds the backend's reason.
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState("")
 	// The "change picture" popup.
 	const [pickerOpen, setPickerOpen] = useState(false)
+
+	const revokePreview = () => {
+		if (objectUrlRef.current) {
+			URL.revokeObjectURL(objectUrlRef.current)
+			objectUrlRef.current = null
+		}
+	}
+
+	// Only ever cleans up on unmount — revokePreview() itself handles the
+	// mid-session case each time a new file is picked.
+	useEffect(() => revokePreview, [])
 
 	const navigate = useNavigate()
 
@@ -54,24 +82,24 @@ function Profile() {
 
 	const startEdit = () => {
 		setDraft({ name, username, email, pass, avatar })
+		setAvatarPreview(avatar)
 		setError("")
 		setEditing(true)
 	}
 
 	const cancelEdit = () => {
+		revokePreview()
 		setEditing(false)
 		setError("")
 	}
 
-	// Only the fields the user actually touched. The backend stays the source of
-	// truth for validation (unique username/email, password strength, allowed
-	// avatar) — the frontend just forwards the diff and shows what comes back.
+	// Only the fields the user actually touched. Email and password aren't
+	// included — dj-rest-auth's /auth/user/ doesn't accept either (see the
+	// comments on their state above), so there's nothing to diff there yet.
 	const buildChanges = () => {
 		const changes = {}
 		if (draft.name !== name) changes.name = draft.name
 		if (draft.username !== username) changes.username = draft.username
-		if (draft.email !== email) changes.email = draft.email
-		if (draft.pass !== pass) changes.password = draft.pass
 		if (draft.avatar !== avatar) changes.avatar = draft.avatar
 		return changes
 	}
@@ -87,16 +115,20 @@ function Profile() {
 		setSaving(true)
 		setError("")
 		try {
-			// TODO(backend): confirm endpoint + payload/response shape with the
-			// 200 -> updated user object, 4xx -> { detail: "reason" } (api.js already turns that into a thrown Error with `.message`).
-			const updated = await api.patch("/users/me", changes)
+			const form = new FormData()
+			if ("name" in changes) form.append("display_name", changes.name)
+			if ("username" in changes) form.append("username", changes.username)
+			if ("avatar" in changes) form.append("avatar", await toUploadableFile(changes.avatar))
+
+			// 200 -> updated user object, 4xx -> { detail/field: "reason" }
+			// (api.js already turns that into a thrown Error with `.message`).
+			const updated = await api.patch("/auth/user/", form)
 
 			// Prefer the server's copy of each field when it returns one.
-			setName(updated?.name ?? draft.name)
+			setName(updated?.display_name ?? draft.name)
 			setUsername(updated?.username ?? draft.username)
-			setEmail(updated?.email ?? draft.email)
-			setAvatar(updated?.avatar ?? draft.avatar)
-			if (changes.password) setPass(draft.pass)
+			setAvatar(updated?.avatar_url ?? avatar)
+			login(updated)
 			setEditing(false)
 		} catch (err) {
 			setError(err.message || "Could not save your changes.")
@@ -108,11 +140,26 @@ function Profile() {
 	const setField = (key) => (e) =>
 		setDraft((d) => ({ ...d, [key]: e.target.value }))
 
+	const selectAvatar = (value) => {
+		setDraft((d) => ({ ...d, avatar: value }))
+		revokePreview()
+		if (value instanceof File) {
+			const url = URL.createObjectURL(value)
+			objectUrlRef.current = url
+			setAvatarPreview(url)
+		} else {
+			setAvatarPreview(value)
+		}
+		setPickerOpen(false)
+	}
+
 	// Text/email rows shown between the avatar and the stats.
 	const current = { name, username, email, pass }
 	const editableRows = [
 		{ key: "name", label: "Name", type: "text" },
-		{ key: "email", label: "Email", type: "email" },
+		// dj-rest-auth's /auth/user/ treats email as read-only (it's meant to
+		// go through a verification flow we don't have yet) — shown, not editable.
+		{ key: "email", label: "Email", type: "email", disabled: true },
 	]
 
 	const inputClass =
@@ -126,9 +173,9 @@ function Profile() {
 				    opens the picker popup. */}
 				<div className="relative w-28 shrink-0">
 					<img
-						src={editing ? draft.avatar : avatar}
+						src={editing ? avatarPreview : avatar}
 						alt="Profile image avatar"
-						className="w-28 rounded-full"
+						className="w-28 h-28 rounded-full object-cover"
 					/>
 					{editing && (
 						<button
@@ -157,15 +204,19 @@ function Profile() {
 			</div>
 
 			<form onSubmit={save} className="p-3">
-				{editableRows.map(({ key, label, type }) => (
+				{editableRows.map(({ key, label, type, disabled }) => (
 					<div key={key}>
-						<p className="text-sm tracking-wide text-white/60">{label}</p>
+						<p className="text-sm tracking-wide text-white/60">
+							{label}
+							{disabled && editing && " (can't be changed yet)"}
+						</p>
 						{editing ? (
 							<input
 								type={type}
 								value={draft[key]}
 								onChange={setField(key)}
-								className={`${inputClass} mb-3 w-full`}
+								disabled={disabled}
+								className={`${inputClass} mb-3 w-full disabled:opacity-50`}
 							/>
 						) : (
 							<p className="text-lg mb-3">{current[key]}</p>
@@ -258,10 +309,7 @@ function Profile() {
 				open={pickerOpen}
 				current={draft.avatar}
 				onClose={() => setPickerOpen(false)}
-				onSelect={(src) => {
-					setDraft((d) => ({ ...d, avatar: src }))
-					setPickerOpen(false)
-				}}
+				onSelect={selectAvatar}
 			/>
 		</section>
 	)

@@ -14,7 +14,6 @@ import {
 } from "@/lib/rooms.js"
 import cardVerse from "../assets/one_card_verse.svg"
 
-// Mockup rooms until the backend serves the real list. It's ONE (UNO), so a
 // room has no theme — just a host, its players and which rule modifiers are on.
 // Shape matches lib/rooms.js so a created room slots straight in.
 const ROOMS = [

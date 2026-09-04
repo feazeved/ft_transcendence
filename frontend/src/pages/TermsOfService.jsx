@@ -25,7 +25,7 @@ function TermsOfService() {
 					<Section title="2. Description of the service">
 						<p>
 							ONE lets you create an account, add friends, and play a
-							UNO-style card game against other players or AI opponents,
+							card game against other players or AI opponents,
 							individually or in tournaments, with in-game chat between
 							participants. Because this is a student project built for
 							evaluation purposes, features may change, be incomplete, or be

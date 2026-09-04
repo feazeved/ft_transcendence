@@ -34,7 +34,10 @@ function extractErrorMessage(data, status) {
 }
 
 async function request(method, path, body) {
-  const headers = { "Content-Type": "application/json" };
+  // A FormData body (file uploads) needs its own browser-generated
+  // multipart boundary — setting Content-Type ourselves would break it.
+  const isFormData = body instanceof FormData;
+  const headers = isFormData ? {} : { "Content-Type": "application/json" };
 
   const token = localStorage.getItem("token");
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -48,7 +51,7 @@ async function request(method, path, body) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 
   const isJson = res.headers.get("content-type")?.includes("application/json");
