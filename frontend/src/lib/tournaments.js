@@ -1,15 +1,6 @@
-// Identity + mock helpers for tournaments — the tournament equivalent of
-// lib/rooms.js. The bracket maths and settings schema live in
-// lib/tournamentStructure.js; this file only knows about "which tournament is
-// this" (id, name, host, status, date, who's signed up) and how to fake a
-// list of them.
 import { RULE_TOGGLES } from "./rooms.js"
 import { makeDefaultConfig } from "./tournamentStructure.js"
 
-// Tournament tables are just rooms under the hood, so house rules reuse the
-// exact same toggles (names, labels, hints) as the create-room popup — minus
-// "Allow spectator": a tournament table can't be spectated, so it's fixed
-// off in tournamentStructure.js's makeDefaultConfig rather than offered here.
 export const HOUSE_RULE_TOGGLES = RULE_TOGGLES.filter((r) => r.key !== "spectate")
 
 export const STATUS_LABELS = {
@@ -18,15 +9,12 @@ export const STATUS_LABELS = {
 	finished: "Finished",
 }
 
-// Tailwind color class per status, reused by the list cards and the detail page.
 export const STATUS_COLORS = {
 	scheduled: "text-blue",
 	ongoing: "text-green",
 	finished: "text-white/50",
 }
 
-// Short human-friendly id others type to find the tournament. Same alphabet as
-// makeRoomCode (ambiguous characters left out on purpose).
 export function makeTournamentId(length = 4) {
 	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 	let id = ""
@@ -44,9 +32,6 @@ export function formatDate(iso) {
 	})
 }
 
-// Turns { name, config } from CreateTournamentModal into a full tournament
-// record. A brand new tournament always starts "scheduled" — it hasn't been
-// run yet — with the host already signed up as its first participant.
 // TODO backend: POST /tournaments/ with { name, ...config }, use the
 // returned id instead of a client-generated one.
 export function buildTournament({ name, host, avatar, config }) {
@@ -67,8 +52,6 @@ function daysFromNow(days) {
 	return d.toISOString()
 }
 
-// Mock signup list: the host plus `count - 1` filler players, same shape as
-// the `room()` helper in Play.jsx.
 function mockParticipants(count, host) {
 	return Array.from({ length: count }, (_, i) => ({
 		name: i === 0 ? host : `player_${i + 1}`,
@@ -77,10 +60,6 @@ function mockParticipants(count, host) {
 	}))
 }
 
-// Mockup tournaments until the backend serves the real list. A finished
-// tournament carries `results`: the top 3 participant names, 1st to 3rd. An
-// "ongoing" one is always full (participants === players) — it's already
-// under way, so there's no open seat left to join.
 // TODO backend: GET /tournaments/ — results will come from completed match
 // data once round/match play exists, not a fixed list.
 export function mockTournaments() {
@@ -180,8 +159,6 @@ export function mockTournaments() {
 	]
 }
 
-// Fallback tournament used when TournamentDetail is opened directly /
-// refreshed and the navigation state from Tournaments was lost.
 // TODO backend: replace with a real GET /tournaments/:id.
 export function mockTournament(id) {
 	return (

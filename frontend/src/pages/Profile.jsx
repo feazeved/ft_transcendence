@@ -12,14 +12,8 @@ import { useAuth } from "../lib/auth.jsx"
 import pencil from "../assets/pencil.svg"
 import logoutIcon from "../assets/logout.svg"
 
-// Fallback until the backend sends the real avatar. Files live in
-// public/profile, so they're served from the site root (see AvatarPicker).
 const DEFAULT_AVATAR = "/profile/default.jpg"
 
-// A preset avatar is just a static path on our own origin — refetch it as a
-// Blob so it can go through the same multipart `avatar` field as a real
-// upload (the backend's avatar field only accepts an uploaded file, not a
-// path string).
 async function toUploadableFile(avatar) {
 	if (avatar instanceof File) return avatar
 	const response = await fetch(avatar)
@@ -30,15 +24,9 @@ async function toUploadableFile(avatar) {
 function Profile() {
 	const { user, login, logout } = useAuth()
 
-	// Read-only for now: dj-rest-auth keeps email out of this endpoint (email
-	// changes are meant to go through a verification flow we don't have yet),
-	// so it's shown but never sent.
 	const [email] = useState(user?.email ?? "")
 	const [name, setName] = useState(user?.display_name ?? "")
 	const [username, setUsername] = useState(user?.username ?? "")
-	// Never sent to us by the backend — a fixed-length placeholder just gives
-	// the masked dots below something to render. There's no password-change
-	// endpoint yet, so this is display-only and never included in a save.
 	const [pass] = useState("& I gt78-1jd25")
 	const [avatar, setAvatar] = useState(user?.avatar_url ?? DEFAULT_AVATAR)
 	// TODO(backend): no stats endpoint yet — still mock until one exists.
@@ -46,18 +34,12 @@ function Profile() {
 	const lose = 30
 	const winRate = Math.round((wins / (wins + lose)) * 100)
 
-	// Toggles the name/username/email/password rows between text and inputs.
-	// The stats below are computed elsewhere and never editable.
 	const [editing, setEditing] = useState(false)
 	const [draft, setDraft] = useState({ name, username, email, pass, avatar })
-	// What the avatar <img> actually renders while editing — a plain URL even
-	// when draft.avatar is a freshly-picked File (see onSelect below).
 	const [avatarPreview, setAvatarPreview] = useState(avatar)
 	const objectUrlRef = useRef(null)
-	// Set while the save request is in flight; `error` holds the backend's reason.
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState("")
-	// The "change picture" popup.
 	const [pickerOpen, setPickerOpen] = useState(false)
 
 	const revokePreview = () => {
@@ -67,16 +49,12 @@ function Profile() {
 		}
 	}
 
-	// Only ever cleans up on unmount — revokePreview() itself handles the
-	// mid-session case each time a new file is picked.
 	useEffect(() => revokePreview, [])
 
 	const navigate = useNavigate()
 
 	const handleLogout = () => {
 		logout()
-		// Leaves the profile (closing it if it's a modal) and drops the
-		// background location, so the navbar flips back to the log-in icon.
 		navigate("/")
 	}
 
@@ -93,9 +71,6 @@ function Profile() {
 		setError("")
 	}
 
-	// Only the fields the user actually touched. Email and password aren't
-	// included — dj-rest-auth's /auth/user/ doesn't accept either (see the
-	// comments on their state above), so there's nothing to diff there yet.
 	const buildChanges = () => {
 		const changes = {}
 		if (draft.name !== name) changes.name = draft.name
@@ -120,11 +95,8 @@ function Profile() {
 			if ("username" in changes) form.append("username", changes.username)
 			if ("avatar" in changes) form.append("avatar", await toUploadableFile(changes.avatar))
 
-			// 200 -> updated user object, 4xx -> { detail/field: "reason" }
-			// (api.js already turns that into a thrown Error with `.message`).
 			const updated = await api.patch("/auth/user/", form)
 
-			// Prefer the server's copy of each field when it returns one.
 			setName(updated?.display_name ?? draft.name)
 			setUsername(updated?.username ?? draft.username)
 			setAvatar(updated?.avatar_url ?? avatar)
@@ -153,12 +125,9 @@ function Profile() {
 		setPickerOpen(false)
 	}
 
-	// Text/email rows shown between the avatar and the stats.
 	const current = { name, username, email, pass }
 	const editableRows = [
 		{ key: "name", label: "Name", type: "text" },
-		// dj-rest-auth's /auth/user/ treats email as read-only (it's meant to
-		// go through a verification flow we don't have yet) — shown, not editable.
 		{ key: "email", label: "Email", type: "email", disabled: true },
 	]
 

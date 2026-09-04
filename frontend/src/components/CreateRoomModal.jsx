@@ -10,7 +10,6 @@ import {
 	defaultRoomSettings,
 } from "@/lib/rooms.js"
 
-// Small brand-styled on/off switch. Reused for every optional rule.
 const Toggle = ({ checked, onChange, label, hint }) => (
 	<label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
 		<span className="min-w-0">

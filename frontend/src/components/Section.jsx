@@ -1,11 +1,5 @@
 import { useId } from "react";
 
-// The card used by the auth forms (Login / Register) and the long-form pages
-// (Rules, Privacy, Terms) — same look everywhere: translucent, blur-backed,
-// soft shadow, centered title.
-//
-// `className` sets the width/layout only. Default fills a `flex` row/column
-// (the policy pages); the auth forms pass a fixed width so they look unchanged.
 function Section({ title, children, className = "flex-1 min-w-70 max-w-full" }) {
 	const headingId = useId();
 	return (

@@ -22,9 +22,6 @@ function Login() {
     setError("");
 
     try {
-      // Session login (dj-rest-auth's /auth/login/ with SESSION_LOGIN) responds
-      // 204 with an empty body — no user data to read off it. Fetch the real
-      // account straight after, the same way OAuthCallback.jsx does.
       await api.post("/auth/login/", { email, password });
       const user = await api.get("/auth/user/");
       login(user);

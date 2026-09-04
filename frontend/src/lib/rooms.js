@@ -66,17 +66,6 @@ export function hasAnyModifier(settings = {}) {
 	return RULE_TOGGLES.some((r) => settings[r.key])
 }
 
-// Returns a copy of `room` with `user` added. By default they take a free chair
-// in `players`, falling back to `spectators` when every seat is filled. Pass
-// `{ asSpectator: true }` to go straight to `spectators` even with seats open.
-// Either list is capped (max_players / MAX_SPECTATORS); the player count drives
-// the "x/y" count and the seat grid, the spectator count drives the watchers
-// list. Dedup is by username across BOTH lists, so it's safe to call more than
-// once (Play on join + Room on mount).
-// TODO(backend): this is POST /games/:code/join done client-side. The real
-// version returns the updated roster + the role the server assigned, and a
-// socket pushes the other players' joins/leaves/seat-changes so every client's
-// counts move, not just the one who joined.
 export function joinRoom(room, user, { asSpectator = false } = {}) {
 	if (!user?.username) return room
 	const spectators = room.spectators ?? []
@@ -98,11 +87,9 @@ export function joinRoom(room, user, { asSpectator = false } = {}) {
 	if (spectators.length < MAX_SPECTATORS) {
 		return { ...room, spectators: [...spectators, person] }
 	}
-	// No room left in the role they asked for. Caller keeps the user out.
 	return room
 }
 
-// True when the room can't take another person in any role.
 export function roomIsFull(room) {
 	const spectators = room.spectators ?? []
 	const seatsFull = room.players.length >= room.settings.max_players
@@ -110,8 +97,6 @@ export function roomIsFull(room) {
 	return seatsFull && spectators.length >= MAX_SPECTATORS
 }
 
-// Fallback room used when the Room page is opened directly / refreshed and the
-// navigation state from Play was lost. Replace with a real GET /games/:code.
 export function mockRoom(code) {
 	const settings = defaultRoomSettings()
 	return {
