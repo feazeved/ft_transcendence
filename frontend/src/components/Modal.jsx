@@ -1,19 +1,13 @@
 import { useEffect, useRef, useId } from "react"
 import { createPortal } from "react-dom"
 
-// Everything inside the panel that a keyboard user can land on.
-// Used to keep Tab focus from escaping the modal while it's open.
 const FOCUSABLE =
 	'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-// Generic, reusable popup. It doesn't know about routing or what it shows —
-// give it `children` and an `onClose` and it handles the dialog behaviour:
-// backdrop, Escape / click-outside to close, body scroll lock and focus.
 const Modal = ({ open = true, onClose, title, children, className = "" }) => {
 	const panelRef = useRef(null)
 	const titleId = useId()
 
-	// Escape closes; Tab cycles focus inside the panel instead of leaving it.
 	useEffect(() => {
 		if (!open) return
 
@@ -42,7 +36,6 @@ const Modal = ({ open = true, onClose, title, children, className = "" }) => {
 		return () => document.removeEventListener("keydown", onKeyDown)
 	}, [open, onClose])
 
-	// Stop the page behind the modal from scrolling while it's open.
 	useEffect(() => {
 		if (!open) return
 		const previous = document.body.style.overflow
@@ -50,7 +43,6 @@ const Modal = ({ open = true, onClose, title, children, className = "" }) => {
 		return () => { document.body.style.overflow = previous }
 	}, [open])
 
-	// Move focus into the modal when it opens, put it back where it was on close.
 	useEffect(() => {
 		if (!open) return
 		const previouslyFocused = document.activeElement
@@ -62,15 +54,9 @@ const Modal = ({ open = true, onClose, title, children, className = "" }) => {
 
 	if (!open) return null
 
-	// createPortal renders this markup at the end of <body>, so the modal isn't
-	// clipped or stacked under whatever container it was written inside.
 	return createPortal(
 		<div
 			className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-			// The panel is this element's only child, so a mousedown whose target
-			// IS this element happened on the dimmed area outside the panel → close.
-			// Using mousedown (not click) means selecting text inside the panel and
-			// releasing outside it doesn't count as a click-away.
 			onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}
 		>
 			<div

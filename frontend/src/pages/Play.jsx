@@ -1,6 +1,3 @@
-// Rendered as a full page on /play, and as a popup when opened from the navbar
-// (see routes.jsx). Keep the markup layout-agnostic so it works in both: no
-// min-h-screen, no fixed positioning — just a centered content block.
 import { useState } from "react"
 import { useNavigate } from "react-router"
 import CreateRoomModal from "@/components/CreateRoomModal.jsx"
@@ -14,8 +11,6 @@ import {
 } from "@/lib/rooms.js"
 import cardVerse from "../assets/one_card_verse.svg"
 
-// room has no theme — just a host, its players and which rule modifiers are on.
-// Shape matches lib/rooms.js so a created room slots straight in.
 const ROOMS = [
 	room("3i2", "guesttt", 3, { ...defaultRoomSettings(), max_players: 5, jump_in: true }, 1),
 	room("38G", "daniel", 2, { ...defaultRoomSettings(), max_players: 6 }),
@@ -46,8 +41,6 @@ function room(code, host, playerCount, settings, spectatorCount = 0) {
 	}
 }
 
-// Brand glow reused from Modal/HoverLink, marks the selected room.
-// Defined once in index.css (`.rainbow-shadow` / the --rainbow-* vars).
 const RAINBOW = "rainbow-shadow"
 
 function Play() {
@@ -84,11 +77,6 @@ function Play() {
 		navigate(`/room/${code}`, { state: { room: newRoom } })
 	}
 
-	// Add the current user to the room and open the room page. They take a seat
-	// when one's free and fall back to spectating once the table is full; from
-	// inside the room they can switch between the two. Anyone not logged in is
-	// sent to sign in first: a room needs a name + avatar to show, and you can't
-	// leave/start/sit without one.
 	function openRoom(room) {
 		if (!user) {
 			navigate("/login", { state: { from: `/room/${room.code}` } })

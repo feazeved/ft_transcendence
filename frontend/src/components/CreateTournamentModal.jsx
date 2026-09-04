@@ -4,8 +4,6 @@ import TournamentStructurePreview from "./TournamentStructurePreview.jsx"
 import { HOUSE_RULE_TOGGLES } from "@/lib/tournaments.js"
 import { FORMATS, LIMITS, makeDefaultConfig, validateConfig } from "@/lib/tournamentStructure.js"
 
-// Small brand-styled on/off switch, copied from CreateRoomModal — the repo
-// keeps this local to each modal rather than sharing it.
 const Toggle = ({ checked, onChange, label, hint }) => (
 	<label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
 		<span className="min-w-0">
@@ -30,13 +28,6 @@ const fieldClass =
 
 const FORMAT_LIST = Object.values(FORMATS)
 
-// Popup for creating a tournament: step 1 picks the format, step 2 configures
-// it with a live structure preview. Like CreateRoomModal, it never talks to
-// the backend itself — on submit it hands { name, config } back through
-// `onCreate` and the caller (Tournaments) decides what to do with it.
-//
-// The caller remounts this via a `key` tied to `open`, so state starts fresh
-// on every open and there's no reset-on-open effect to write.
 const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 	const [step, setStep] = useState(1)
 	const [name, setName] = useState("")

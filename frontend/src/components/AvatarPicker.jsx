@@ -1,12 +1,7 @@
 import { useRef, useState } from "react"
 import Modal from "./Modal.jsx"
-// Files under public/ are served as-is from the site root, not bundled — so
-// this is a plain URL string, not an import (Vite rejects importing from public/).
 const uploadIcon = "/profile/upload_picture.jpeg"
-// The avatars live in frontend/public/profile, so Vite/nginx serve them from
-// the site root. A public/ folder can't be listed from the browser, so every
-// choice has to be named here — drop a file in there and add its name below.
-// encodeURI keeps the spaces in some filenames valid in the URL.
+
 const AVATARS = [
 	"daniel.png",
 	"alex.png",
@@ -25,17 +20,14 @@ const AVATARS = [
 const ACCEPTED_TYPES = ["image/png", "image/jpeg"]
 const MAX_FILE_BYTES = 2 * 1024 * 1024
 
-// Small popup that lets the user pick one of the bundled profile pictures, or
-// upload their own. It doesn't save anything itself — it just reports the
-// choice back up through `onSelect` (a preset path string, or a File for an
-// upload); the parent decides what to do with it.
+
 const AvatarPicker = ({ open, current, onClose, onSelect }) => {
 	const fileInputRef = useRef(null)
 	const [error, setError] = useState("")
 
 	const handleFileChange = (e) => {
 		const file = e.target.files?.[0]
-		e.target.value = "" // let picking the same file twice fire onChange again
+		e.target.value = ""
 		if (!file) return
 
 		if (!ACCEPTED_TYPES.includes(file.type)) {

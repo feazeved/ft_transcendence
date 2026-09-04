@@ -7,10 +7,6 @@ import { useAuth } from "@/lib/auth.jsx"
 // Defined once in index.css (`.rainbow-shadow` / the --rainbow-* vars).
 const RAINBOW = "rainbow-shadow"
 
-// Mockup players until the backend serves the real standings. Shape lines up
-// with what a GET /leaderboard would return per row: a display name, the avatar
-// file (served from public/profile) and the raw win/loss tallies. Everything
-// shown (rank, games, win rate) is derived below, never stored.
 // TODO(backend): replace with api.get("/leaderboard") — expect
 // [{ username, avatar, wins, losses }, ...]; rank/sort can stay client-side.
 const MOCK_PLAYERS = [

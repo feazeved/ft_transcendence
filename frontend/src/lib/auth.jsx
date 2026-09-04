@@ -1,14 +1,5 @@
 import { createContext, useCallback, useContext, useState } from "react"
 
-// One place the whole app asks "is someone logged in, and who?".
-//
-// TODO(JWT): when the backend starts issuing a JWT, `loadUser` should decode the
-// token already kept in localStorage ("token" — set by Login.jsx, read by
-// lib/api.js) and return { username, avatar, ... } straight from its payload.
-// `login` would then only store the token and `logout` only clear it. Until
-// then we persist a plain user object next to the token so a page refresh
-// doesn't drop the session.
-
 const AuthContext = createContext(null)
 
 const USER_KEY = "user"
@@ -27,11 +18,7 @@ function loadUser() {
 export function AuthProvider({ children }) {
 	const [user, setUser] = useState(loadUser)
 
-	// Call after a successful login. `nextUser` is whatever the backend returned
-	// about the account (later: the decoded JWT payload).
 	const login = useCallback((nextUser = {}, token) => {
-		// The backend's field is `avatar_url` (see UserDetailsSerializer); NavBar
-		// and everything else here reads `avatar` — normalize once, at the source.
 		const value = {
 			username: "player",
 			...nextUser,

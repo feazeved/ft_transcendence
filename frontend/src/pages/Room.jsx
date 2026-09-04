@@ -1,6 +1,3 @@
-// Full page at /room/:id — never a popup. Reached from Play after creating or
-// joining a room, or directly by anyone who types the room id. Shows the room
-// name, its share id, the chosen rules and who's currently seated.
 import { useState } from "react"
 import { Navigate, useNavigate, useParams, useLocation } from "react-router"
 import { useAuth } from "@/lib/auth.jsx"
@@ -8,7 +5,6 @@ import { enabledRuleLabels, joinRoom, MAX_SPECTATORS, mockRoom } from "@/lib/roo
 import cardVerse from "../assets/one_card_verse.svg"
 import table from "../assets/table-2.png"
 
-// Defined once in index.css (`.rainbow-shadow` / the --rainbow-* vars).
 const RAINBOW = "rainbow-shadow"
 
 function Room() {
@@ -18,20 +14,13 @@ function Room() {
 	const { user } = useAuth()
 	const [copied, setCopied] = useState(false)
 
-	// Play passes the freshly built room through navigation state. On a direct
-	// visit / refresh that's gone, so fall back to a mock.
 	// TODO(backend): when state is missing, fetch it with api.get(`/games/${id}`)
 	// and keep it live over a socket so the seats also move when *other* players
 	// come, go or change chair.
 	const fromNav = location.state?.room
 	const baseRoom = fromNav?.code === id ? fromNav : mockRoom(id)
-	// Add whoever opened the page, so the table includes them — covers a shared
-	// link or a refresh, where Play never got to add them. They land in a chair
-	// if one's free, otherwise as a spectator.
 	const seededRoom = joinRoom(baseRoom, user)
 
-	// One slot per chair around the table, `null` when free. A player keeps the
-	// slot they land in; clicking a free slot moves you there (`takeSeat`).
 	const [seats, setSeats] = useState(() =>
 		Array.from(
 			{ length: seededRoom.settings.max_players },
@@ -39,12 +28,8 @@ function Room() {
 		),
 	)
 
-	// Watchers with no chair. A spectator can grab a freed seat (`takeSeat`),
-	// which pulls them out of this list and into `seats` as a player.
 	const [spectators, setSpectators] = useState(() => seededRoom.spectators ?? [])
 
-	// A room has nothing to show for a signed-out visitor (no name, no avatar)
-	// and none of its actions work, so send them to sign in and come back.
 	if (!user) return <Navigate to="/login" replace state={{ from: `/room/${id}` }} />
 
 	const room = baseRoom
@@ -55,9 +40,6 @@ function Room() {
 	const isHost = room.host === user.username
 	const rules = enabledRuleLabels(room.settings)
 
-	// Put the current user into a free chair `target`. A seated player switches
-	// chairs; a spectator claims the seat and becomes a player, leaving the
-	// watchers list. No-op if the seat is taken or it's the one they're in.
 	// TODO(backend): POST /games/:code/seat { index }, broadcast over the socket.
 	const takeSeat = (target) => {
 		if (seats[target] || mySeat === target) return
@@ -98,8 +80,6 @@ function Room() {
 		}
 	}
 
-	// Give up my chair and move to the watchers. No-op if I'm not seated or the
-	// spectator slots are already full.
 	// TODO(backend): POST /games/:code/spectate — frees the seat over the socket
 	// so a waiting watcher can take it.
 	const goSpectate = () => {
@@ -168,14 +148,6 @@ function Room() {
 						{seats.map((player, i) => {
 							const mine = player?.name === user.username
 							const canSit = !player && (mySeat !== -1 || amSpectator)
-							// Every seat is built identically and pinned to the top-centre
-							// of a full-size wrapper; spinning the wrapper drops it onto the
-							// ring, so the gap to the table is the same all the way around,
-							// whatever the label height. The centring translate lives on
-							// `.seat-pos` and the upright counter-spin on the button — two
-							// separate elements on purpose: a `translateX` in the same
-							// transform as the counter-spin gets rotated with it and pulls
-							// the seat off its radius (the ring then drifts off-centre).
 							const spin = (360 / seatCount) * i
 							return (
 								<div

@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-// Extra props (e.g. `state`, `onClick`) are forwarded straight to <Link> so
+// Extra props (state, onClick) are forwarded straight to <Link> so
 // callers can do things like open the target as a modal.
 const HoverLink = ({ to = "/", className = "", children, ...rest }) => {
 	return (

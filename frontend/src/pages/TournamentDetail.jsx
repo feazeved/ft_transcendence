@@ -1,7 +1,3 @@
-// Full page at /tournament/:id — never a popup, same reasoning as Room: it
-// has its own id in the URL to share. Read-only besides signing up and the
-// host starting it: no round management, no matches, no standings (that
-// needs a backend).
 import { useState } from "react"
 import { useNavigate, useParams, useLocation } from "react-router"
 import { useAuth } from "@/lib/auth.jsx"
@@ -14,8 +10,6 @@ function TournamentDetail() {
 	const navigate = useNavigate()
 	const { user } = useAuth()
 
-	// Tournaments passes the freshly built tournament through navigation state.
-	// On a direct visit / refresh that's gone, so fall back to a mock.
 	// TODO backend: when state is missing, fetch it with api.get(`/tournaments/${id}`)
 	const fromNav = location.state?.tournament
 	const tournament = fromNav?.id === id ? fromNav : mockTournament(id)
@@ -25,8 +19,6 @@ function TournamentDetail() {
 	const structure = computeStructure(config)
 	const rules = enabledHouseRuleLabels(config.houseRules)
 
-	// Local-only roster + status: joining/starting here doesn't persist
-	// anywhere and there's no round/match play yet.
 	// TODO backend: POST /tournaments/:id/join, then read the live roster back
 	// (and, once matches exist, redirect a signed-up player into their table).
 	const [participants, setParticipants] = useState(tournament.participants ?? [])

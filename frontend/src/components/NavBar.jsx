@@ -10,11 +10,7 @@ import { useAuth } from "../lib/auth.jsx"
 
 const Header = () => {
   const location = useLocation()
-  // null when logged out. When set, we show the avatar instead of the icon
-  // (later populated from the JWT — username, avatar, …).
   const { user } = useAuth()
-  // Spread onto a link to make its target open as a popup over the current
-  // page instead of navigating away to the full page (see routes.jsx).
   const asModal = { state: { background: location } }
 
   return (

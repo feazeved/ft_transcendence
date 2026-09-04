@@ -1,6 +1,3 @@
-// Pure tournament logic. No React on purpose: the bracket maths is the one piece
-// worth reusing later (real bracket generation, backend validation, previews).
-// Everything here is a plain function that never throws.
 import { defaultRoomSettings } from './rooms.js'
 
 export const FORMATS = {
@@ -26,13 +23,8 @@ export const LIMITS = {
 	turnTimeSeconds: { min: 5, max: 300 },
 }
 
-// The soft ceiling for round count. Above this the preview shows a warning
-// (it does not block creation).
 export const MAX_RECOMMENDED_ROUNDS = 5
 
-// Every tournament table runs on the same game engine as a room, so house
-// rules reuse the exact settings (and defaults) from lib/rooms.js — see
-// RULE_TOGGLES there for the toggle labels/hints.
 export function makeDefaultConfig(format = 'knockout') {
 	const { stacking_draw_two, jump_in, draw_until_playable, seven_swap, zero } = defaultRoomSettings()
 	return {
@@ -49,8 +41,6 @@ export function makeDefaultConfig(format = 'knockout') {
 			draw_until_playable,
 			seven_swap,
 			zero,
-			// Unlike a standalone room, a tournament table can never be
-			// spectated — fixed off, not a toggle.
 			spectate: false,
 		},
 		// knockout only
@@ -63,14 +53,6 @@ export function makeDefaultConfig(format = 'knockout') {
 
 const HARD_ITERATION_CAP = 64
 
-// Works out how many rounds the tournament has and how many players / tables
-// each one holds. Returns:
-//   {
-//     rounds: [{ round, players, tables, advancing, isFinal }],
-//     totalRounds,
-//     converged,       // false when the bracket never shrinks to a single table
-//     tooManyRounds,   // converged && totalRounds > MAX_RECOMMENDED_ROUNDS
-//   }
 export function computeStructure(config) {
 	const perTable = Math.max(2, Math.floor(Number(config.playersPerTable)) || 0)
 	const advance = Math.max(1, Math.floor(Number(config.advancePerTable)) || 0)
@@ -80,7 +62,6 @@ export function computeStructure(config) {
 	let converged = false
 
 	if (remaining <= perTable) {
-		// Everyone already fits on one table — it is just a final.
 		rounds.push({ round: 1, players: remaining, tables: 1, advancing: remaining, isFinal: true })
 		converged = true
 	} else {
@@ -90,7 +71,6 @@ export function computeStructure(config) {
 			const advancing = tables * advance
 
 			if (advancing >= remaining) {
-				// Not shrinking: impossible bracket (e.g. 3 advance from tables of 4).
 				rounds.push({ round: rounds.length + 1, players: remaining, tables, advancing, isFinal: false })
 				converged = false
 				break
@@ -119,8 +99,6 @@ export function computeStructure(config) {
 
 const inRange = (value, { min, max }) => Number.isFinite(value) && value >= min && value <= max
 
-// Simple validation to stop impossible combinations before creation.
-// Returns { ok, errors: string[] } — errors are user-facing messages.
 export function validateConfig(config) {
 	const errors = []
 
@@ -151,7 +129,6 @@ export function validateConfig(config) {
 			errors.push('Matches in the final must be an odd number.')
 	}
 
-	// Only run the structural check once the raw numbers are sane.
 	if (errors.length === 0 && !computeStructure(config).converged)
 		errors.push('With this table size and this many players advancing, the tournament never reduces to a single final table.')
 

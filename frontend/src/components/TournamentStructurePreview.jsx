@@ -1,8 +1,5 @@
 import { computeStructure, MAX_RECOMMENDED_ROUNDS } from "@/lib/tournamentStructure.js"
 
-// Condensed "20 players → 4 tables → 8 players → 2 tables → final of 4 · 3
-// rounds" line, live in CreateTournamentModal and static in TournamentDetail.
-// Pure presentation over computeStructure() — no state of its own.
 const TournamentStructurePreview = ({ config }) => {
 	const structure = computeStructure(config)
 

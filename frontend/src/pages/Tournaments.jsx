@@ -1,5 +1,3 @@
-// Rendered as a full page on /tournament, and as a popup when opened from the
-// navbar (see routes.jsx). Keep the markup layout-agnostic so it works in both.
 import { useState } from "react"
 import { useNavigate } from "react-router"
 import CreateTournamentModal from "@/components/CreateTournamentModal.jsx"
