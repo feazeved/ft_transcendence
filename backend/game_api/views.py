@@ -1,11 +1,12 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db import transaction
 
 from game_engine import GameSettings
@@ -13,7 +14,10 @@ from game_engine import start_game as engine_start_game
 from game_engine import state_to_dict
 
 from .models import Friendship, FriendshipStatus, User, Game, GamePlayer, GameStatus, MODIFIER_FIELDS
-from .serializers import FriendshipSerializer, FriendshipTargetSerializer, PublicProfileSerializer, GameCreateSerializer, GameDetailSerializer, GameListSerializer
+from .serializers import (
+	FriendshipSerializer, FriendshipTargetSerializer, PublicProfileSerializer, GameCreateSerializer, GameDetailSerializer, GameListSerializer,
+	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer,
+	)
 from .consumers import broadcast_game_update as _broadcast_game_update
 
 @ensure_csrf_cookie
@@ -225,3 +229,47 @@ class GameViewSet(viewsets.GenericViewSet):
 
 		_broadcast_game_update(game)
 		return Response(GameDetailSerializer(self.get_queryset().get(pk=game.pk)).data)
+
+class StatsPagination(PageNumberPagination):
+	page_size = 20
+	max_page_size = 100
+	page_size_query_param = "page_size"
+
+class MatchHistoryView(generics.ListAPIView):
+	serializer_class = MatchHistoryEntrySerializer
+	pagination_class = StatsPagination
+
+	def _viewed_user(self):
+		if not hasattr(self, "_viewed_user_cache"):
+			self._viewed_user_cache = get_object_or_404(User, public_id=self.kwargs["public_id"])
+		return self._viewed_user_cache
+
+	def get_queryset(self):
+		user = self._viewed_user()
+		return (Game.objects.filter(players__user=user, status=GameStatus.FINISHED).select_related("winner").prefetch_related("players__user").order_by("-finished_at").distinct())
+
+	def get_serializer_context(self):
+		context = super().get_serializer_context()
+		context["viewed_user"] = self._viewed_user()
+		return context
+
+class UserStatsView(generics.RetrieveAPIView):
+	queryset = User.objects.all()
+	serializer_class = UserStatsSerializer
+	lookup_field = "public_id"
+
+class LeaderboardView(generics.ListAPIView):
+	serializer_class = LeaderboardEntrySerializer
+	pagination_class = StatsPagination
+
+	def get_queryset(self):
+		return (
+			User.objects.annotate(
+				games_played_count=Count(
+					"game_seats", filter=Q(game_seats__game__status=GameStatus.FINISHED), distinct=True
+				),
+				games_won_count=Count("games_won", distinct=True),
+			)
+			.filter(games_played_count__gt=0)
+			.order_by("-games_won_count", "-games_played_count", "username")
+		)
