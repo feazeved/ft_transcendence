@@ -149,11 +149,12 @@ class GameConsumer(WebsocketConsumer):
 				if new_state.winner_id is not None:
 					game.status = GameStatus.FINISHED
 					game.finished_at = timezone.now()
-					winner_gp = (
-						GamePlayer.objects.filter(pk=int(new_state.winner_id)).select_related("user").first())
+					winner_gp = (GamePlayer.objects.filter(pk=int(new_state.winner_id)).select_related("user").first())
 					if winner_gp is not None:
 						game.winner = winner_gp.user
-						GamePlayer.objects.filter(pk=winner_gp.pk).update(finish_position=1)
+					ranked = sorted(new_state.players, key=lambda p: len(p.hand))
+					for position, ranked_player in enumerate(ranked, start=1):
+						GamePlayer.objects.filter(pk=int(ranked_player.player_id)).update(finish_position=position)
 					game.save(update_fields=["state", "status", "finished_at", "winner"])
 				else:
 					game.save(update_fields=["state"])

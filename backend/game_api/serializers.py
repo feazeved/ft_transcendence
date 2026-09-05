@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Friendship, Game, GamePlayer, MODIFIER_FIELDS as _MODIFIER_FIELDS
+from .models import Friendship, Game, GamePlayer, GameStatus, MODIFIER_FIELDS as _MODIFIER_FIELDS
 
 User = get_user_model()
 
@@ -115,3 +115,42 @@ class GameCreateSerializer(serializers.ModelSerializer):
 		model = Game
 		fields = ("mode", "max_seats", "starting_hand_size", "turn_timer_seconds", *_MODIFIER_FIELDS)
 		extra_kwargs = {"max_seats": {"default": 4}, "starting_hand_size": {"default": 7}}
+
+class MatchHistoryEntrySerializer(serializers.ModelSerializer):
+	players = GamePlayerSerializer(many=True, read_only=True)
+	winner = PublicProfileSerializer(read_only=True)
+	won = serializers.SerializerMethodField()
+
+	class Meta:
+		model = Game
+		fields = ("public_id", "mode", "players", "winner", "won", "finished_at", *_MODIFIER_FIELDS)
+		read_only_fields = fields
+
+	def get_won(self, game):
+		return game.winner_id == self.context["viewed_user"].id
+
+class UserStatsSerializer(serializers.Serializer):
+	def to_representation(self, user):
+		played = user.game_seats.filter(game__status=GameStatus.FINISHED).count()
+		won = user.games_won.count()
+		return {
+			"games_played": played,
+			"games_won": won,
+			"games_lost": played - won,
+			"win_rate": round(won / played * 100, 1) if played > 0 else 0.0
+		}
+
+class LeaderboardEntrySerializer(serializers.ModelSerializer):
+	games_played = serializers.IntegerField(source="games_played_count")
+	games_won = serializers.IntegerField(source="games_won_count")
+	win_rate = serializers.SerializerMethodField()
+
+	class Meta:
+		model = User
+		fields = ("public_id", "username", "display_name", "avatar_url", "games_played", "games_won", "win_rate")
+		read_only_fields = fields
+
+	def get_win_rate(self, user):
+		if user.games_played_count == 0:
+			return 0.0
+		return round(user.games_won_count / user.games_played_count * 100, 1)
