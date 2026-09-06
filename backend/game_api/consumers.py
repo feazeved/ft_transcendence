@@ -9,7 +9,10 @@ from django.db import transaction
 from game_engine import Color, GameOver, IllegalMove, card_from_dict, card_to_dict, draw_card, pass_turn, play_card, state_from_dict, state_to_dict
 
 from . import presence
-from .models import Game, GamePlayer, GameStatus
+from .models import Game, GamePlayer, GameStatus, ChatMessage, ChatMessageType, Conversation, ConversationRead
+from .serializers import ChatMessageSerializer
+
+User = get_user_model()
 
 class PresenceConsumer(WebsocketConsumer):
 	def connect(self):
@@ -122,6 +125,10 @@ class GameConsumer(WebsocketConsumer):
 			self._send_error("Malformed message.")
 			return
 
+		if action == "chat":
+			self._handle_chat(payload)
+			return
+
 		try:
 			with transaction.atomic():
 				game = Game.objects.select_for_update().get(pk=self.game.pk)
@@ -212,3 +219,151 @@ class GameConsumer(WebsocketConsumer):
 			"winner_id": state.winner_id,
 			"players": players,
 		}
+
+	def _handle_chat(self, payload):
+		body = (payload.get("body") or "").strip()
+		if not body:
+			self._send_error("Message body can't be empty.")
+			return
+		if len(body) > 500:
+			self._send_error("Message is too long.")
+			return
+
+		message = ChatMessage.objects.create(game=self.game, user=self.user, body=body)
+		async_to_sync(self.channel_layer.group_send)(self.group_name, {"type": "game.chat", "message": ChatMessageSerializer(message).data})
+
+	def game_chat(self, event):
+		self.send(text_data=json.dumps({"type": "chat_message", "message": event["message"]}, default=str))
+
+
+class ChatConsumer(WebsocketConsumer):
+	def connect(self):
+		user = self.scope["user"]
+
+		if not user.is_authenticated:
+			self.close()
+			return
+
+		self.user = user
+		self.group_name = f"chat_{user.pk}"
+		async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
+		self.accept()
+
+	def disconnect(self, close_code):
+		user = getattr(self, "user", None)
+		if user is None:
+			return
+		async_to_sync(self.channel_layer.group_discard)(self.group_name, self.channel_name)
+
+	def receive(self, text_data):
+		if getattr(self, "user", None) is None:
+			return
+
+		try:
+			payload = json.loads(text_data)
+			action = payload.get("action")
+		except (json.JSONDecodeError, AttributeError):
+			self._send_error("Malformed message.")
+			return
+
+		if action == "send_message":
+			self._handle_send_message(payload)
+		elif action == "send_game_invite":
+			self._handle_send_game_invite(payload)
+		elif action == "typing":
+			self._handle_typing(payload)
+		elif action == "mark_read":
+			self._handle_mark_read(payload)
+		else:
+			self._send_error(f"Unknown action: {action!r}")
+
+	def _resolve_recipient(self, payload):
+		try:
+			recipient = User.objects.get(public_id=payload["recipient_id"])
+		except (KeyError, User.DoesNotExist, ValueError):
+			self._send_error("Unknown recipient.")
+			return None
+		if recipient.pk == self.user.pk:
+			self._send_error("Can't message yourself.")
+			return None
+		if self.user.is_blocked_with(recipient):
+			self._send_error("Can't message this user.")
+			return None
+		return recipient
+
+	def _broadcast_message(self, message, participant_ids):
+		payload_out = ChatMessageSerializer(message).data
+		for participant_id in participant_ids:
+			async_to_sync(self.channel_layer.group_send)(f"chat_{participant_id}", {"type": "chat.message", "message": payload_out})
+
+	def _handle_send_message(self, payload):
+		recipient = self._resolve_recipient(payload)
+		if recipient is None:
+			return
+
+		body = (payload.get("body") or "").strip()
+		if not body:
+			self._send_error("Message body can't be empty.")
+			return
+		if len(body) > 500:
+			self._send_error("Message is too long.")
+			return
+
+		conversation = Conversation.between(self.user, recipient)
+		message = ChatMessage.objects.create(conversation=conversation, user=self.user, body=body)
+		self._broadcast_message(message, (self.user.pk, recipient.pk))
+
+	def _handle_send_game_invite(self, payload):
+		recipient = self._resolve_recipient(payload)
+		if recipient is None:
+			return
+
+		try:
+			game = Game.objects.get(public_id=payload["game_id"])
+		except (KeyError, Game.DoesNotExist, ValueError):
+			self._send_error("Unknown game.")
+			return
+		if game.status != GameStatus.PENDING:
+			self._send_error("That game can no longer be joined.")
+			return
+
+		conversation = Conversation.between(self.user, recipient)
+		message = ChatMessage.objects.create(
+			conversation=conversation, user=self.user,
+			message_type=ChatMessageType.GAME_INVITE, invited_game=game,
+			body=(payload.get("body") or "").strip()[:500],
+		)
+		self._broadcast_message(message, (self.user.pk, recipient.pk))
+
+	def _handle_typing(self, payload):
+		try:
+			recipient = User.objects.get(public_id=payload["recipient_id"])
+		except (KeyError, User.DoesNotExist, ValueError):
+			return  # not worth an error response for a best-effort, ephemeral signal
+		async_to_sync(self.channel_layer.group_send)(f"chat_{recipient.pk}", {"type": "chat.typing", "public_id": str(self.user.public_id), "username": self.user.username})
+
+	def _handle_mark_read(self, payload):
+		try:
+			conversation = Conversation.objects.get(pk=payload["conversation_id"])
+		except (KeyError, Conversation.DoesNotExist, ValueError):
+			self._send_error("Unknown conversation.")
+			return
+		if self.user.pk not in (conversation.user_a_id, conversation.user_b_id):
+			self._send_error("Not your conversation.")
+			return
+
+		ConversationRead.objects.update_or_create(conversation=conversation, user=self.user, defaults={"last_read_at": timezone.now()})
+		other = conversation.other_participant(self.user)
+		async_to_sync(self.channel_layer.group_send)(f"chat_{other.pk}", {"type": "chat.read_receipt", "conversation_id": conversation.pk, "reader_id": str(self.user.public_id)})
+
+	def chat_message(self, event):
+		self.send(text_data=json.dumps({"type": "chat_message", "message": event["message"]}, default=str))
+
+	def chat_typing(self, event):
+		self.send(text_data=json.dumps({"type": "typing", "public_id": event["public_id"], "username": event["username"]}))
+
+	def chat_read_receipt(self, event):
+		self.send(text_data=json.dumps({"type": "read_receipt", "conversation_id": event["conversation_id"], "reader_id": event["reader_id"]}))
+
+	def _send_error(self, message):
+		self.send(text_data=json.dumps({"type": "error", "message": message}))
