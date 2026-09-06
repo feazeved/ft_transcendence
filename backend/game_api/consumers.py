@@ -339,7 +339,7 @@ class ChatConsumer(WebsocketConsumer):
 		try:
 			recipient = User.objects.get(public_id=payload["recipient_id"])
 		except (KeyError, User.DoesNotExist, ValueError):
-			return  # not worth an error response for a best-effort, ephemeral signal
+			return
 		async_to_sync(self.channel_layer.group_send)(f"chat_{recipient.pk}", {"type": "chat.typing", "public_id": str(self.user.public_id), "username": self.user.username})
 
 	def _handle_mark_read(self, payload):
