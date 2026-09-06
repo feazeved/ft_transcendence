@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, viewsets
 from rest_framework.decorators import action
@@ -13,10 +13,10 @@ from game_engine import GameSettings
 from game_engine import start_game as engine_start_game
 from game_engine import state_to_dict
 
-from .models import Friendship, FriendshipStatus, User, Game, GamePlayer, GameStatus, MODIFIER_FIELDS
+from .models import Friendship, FriendshipStatus, User, Game, GamePlayer, GameStatus, Conversation, MODIFIER_FIELDS
 from .serializers import (
 	FriendshipSerializer, FriendshipTargetSerializer, PublicProfileSerializer, GameCreateSerializer, GameDetailSerializer, GameListSerializer,
-	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer,
+	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer, ChatMessageSerializer, ConversationSerializer,
 	)
 from .consumers import broadcast_game_update as _broadcast_game_update
 
@@ -273,3 +273,48 @@ class LeaderboardView(generics.ListAPIView):
 			.filter(games_played_count__gt=0)
 			.order_by("-games_won_count", "-games_played_count", "username")
 		)
+
+class ConversationListView(generics.ListAPIView):
+	serializer_class = ConversationSerializer
+	pagination_class = StatsPagination
+
+	def get_queryset(self):
+		user = self.request.user
+		return (
+			Conversation.objects.filter(Q(user_a=user) | Q(user_b=user))
+			.select_related("user_a", "user_b")
+			.annotate(last_message_at=Max("messages__created_at"))
+			.order_by("-last_message_at")
+		)
+
+
+class ConversationMessagesView(generics.ListAPIView):
+	serializer_class = ChatMessageSerializer
+	pagination_class = StatsPagination
+
+	def get_conversation(self):
+		if not hasattr(self, "_conversation_cache"):
+			conversation = get_object_or_404(Conversation, pk=self.kwargs["conversation_id"])
+			user = self.request.user
+			if user.pk not in (conversation.user_a_id, conversation.user_b_id):
+				raise PermissionDenied("Not your conversation.")
+			self._conversation_cache = conversation
+		return self._conversation_cache
+
+	def get_queryset(self):
+		return (
+			self.get_conversation().messages
+			.select_related("user", "invited_game", "invited_game__host")
+			.order_by("-created_at")
+		)
+
+
+class GameChatHistoryView(generics.ListAPIView):
+	serializer_class = ChatMessageSerializer
+	pagination_class = StatsPagination
+
+	def get_queryset(self):
+		game = get_object_or_404(Game, public_id=self.kwargs["public_id"])
+		if not GamePlayer.objects.filter(game=game, user=self.request.user).exists():
+			raise PermissionDenied("Not a participant in this game.")
+		return game.chat_messages.select_related("user").order_by("-created_at")
