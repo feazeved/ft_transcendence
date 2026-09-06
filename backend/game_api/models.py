@@ -60,6 +60,11 @@ class AiDifficulty(models.TextChoices):
     HARD = 'hard', 'Hard'
 
 
+class ChatMessageType(models.TextChoices):
+    TEXT = 'text', 'Text'
+    GAME_INVITE = 'game_invite', 'Game invite'
+
+
 # --- Tables --------------------------------------------------------------
 
 class User(AbstractUser):
@@ -100,6 +105,12 @@ class User(AbstractUser):
     def accepted_friend_ids(self):
         accepted = Friendship.objects.filter(Q(requester=self) | Q(addressee=self), status=FriendshipStatus.ACCEPTED).values_list("requester_id", "addressee_id")
         return [addressee_id if requester_id == self.pk else requester_id for requester_id, addressee_id in accepted]
+
+    def is_blocked_with(self, other):
+        return Friendship.objects.filter(
+            Q(requester=self, addressee=other) | Q(requester=other, addressee=self),
+            status=FriendshipStatus.BLOCKED,
+        ).exists()
 
     def __str__(self):
         return self.username
@@ -199,11 +210,66 @@ class GamePlayer(models.Model):
         return f'seat {self.seat} in game {self.game_id}'
 
 
-class ChatMessage(models.Model):
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='chat_messages')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='chat_messages')
-    body = models.CharField(max_length=500)
+class Conversation(models.Model):
+    user_a = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_a')
+    user_b = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_b')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user_a', 'user_b'], name='unique_conversation_pair'),
+            models.CheckConstraint(condition=Q(user_a__lt=models.F('user_b')), name='conversation_canonical_order'),
+        ]
+
+    @classmethod
+    def between(cls, user1, user2):
+        a, b = (user1, user2) if user1.pk < user2.pk else (user2, user1)
+        conversation, _ = cls.objects.get_or_create(user_a=a, user_b=b)
+        return conversation
+
+    def other_participant(self, user):
+        return self.user_b if user.pk == self.user_a_id else self.user_a
+
+    def __str__(self):
+        return f'Conversation({self.user_a_id}, {self.user_b_id})'
+
+
+class ConversationRead(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='read_states')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversation_read_states')
+    last_read_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['conversation', 'user'], name='unique_conversation_read_state'),
+        ]
+
+
+class ChatMessage(models.Model):
+    game = models.ForeignKey(
+        Game, on_delete=models.CASCADE, related_name='chat_messages', null=True, blank=True
+    )
+    conversation = models.ForeignKey(
+        Conversation, on_delete=models.CASCADE, related_name='messages', null=True, blank=True
+    )
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='chat_messages')
+    message_type = models.CharField(max_length=15, choices=ChatMessageType.choices, default=ChatMessageType.TEXT)
+    body = models.CharField(max_length=500, blank=True)
+    invited_game = models.ForeignKey(
+        Game, on_delete=models.SET_NULL, null=True, blank=True, related_name='chat_invites'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(game__isnull=False, conversation__isnull=True)
+                    | Q(game__isnull=True, conversation__isnull=False)
+                ),
+                name='chat_message_exactly_one_of_game_or_conversation',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.user_id}: {self.body[:30]}'
