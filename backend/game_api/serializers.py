@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Friendship, Game, GamePlayer, GameStatus, MODIFIER_FIELDS as _MODIFIER_FIELDS
+from .models import Friendship, Game, GamePlayer, GameStatus, ChatMessage, Conversation, ConversationRead, MODIFIER_FIELDS as _MODIFIER_FIELDS
 
 User = get_user_model()
 
@@ -154,3 +154,39 @@ class LeaderboardEntrySerializer(serializers.ModelSerializer):
 		if user.games_played_count == 0:
 			return 0.0
 		return round(user.games_won_count / user.games_played_count * 100, 1)
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+	user = PublicProfileSerializer(read_only=True)
+	invited_game = GameListSerializer(read_only=True)
+
+	class Meta:
+		model = ChatMessage
+		fields = ("id", "user", "message_type", "body", "invited_game", "created_at")
+		read_only_fields = fields
+
+
+class ConversationSerializer(serializers.ModelSerializer):
+	other_participant = serializers.SerializerMethodField()
+	last_message = serializers.SerializerMethodField()
+	unread_count = serializers.SerializerMethodField()
+
+	class Meta:
+		model = Conversation
+		fields = ("id", "other_participant", "last_message", "unread_count", "created_at")
+		read_only_fields = fields
+
+	def get_other_participant(self, conversation):
+		me = self.context["request"].user
+		return PublicProfileSerializer(conversation.other_participant(me)).data
+
+	def get_last_message(self, conversation):
+		last = conversation.messages.order_by("-created_at").first()
+		return ChatMessageSerializer(last).data if last else None
+
+	def get_unread_count(self, conversation):
+		me = self.context["request"].user
+		read_state = conversation.read_states.filter(user=me).first()
+		unread = conversation.messages.exclude(user=me)
+		if read_state is not None:
+			unread = unread.filter(created_at__gt=read_state.last_read_at)
+		return unread.count()
