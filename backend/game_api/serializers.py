@@ -162,10 +162,11 @@ class LeaderboardEntrySerializer(serializers.ModelSerializer):
 class ChatMessageSerializer(serializers.ModelSerializer):
 	user = PublicProfileSerializer(read_only=True)
 	invited_game = GameListSerializer(read_only=True)
+	conversation_id = serializers.IntegerField(read_only=True)
 
 	class Meta:
 		model = ChatMessage
-		fields = ("id", "user", "message_type", "body", "invited_game", "created_at")
+		fields = ("id", "conversation_id", "user", "message_type", "body", "invited_game", "created_at")
 		read_only_fields = fields
 
 class ConversationSerializer(serializers.ModelSerializer):
