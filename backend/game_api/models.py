@@ -224,6 +224,7 @@ class Game(models.Model):
     max_seats = models.PositiveSmallIntegerField(validators=[MinValueValidator(2), MaxValueValidator(10)])
     starting_hand_size = models.PositiveSmallIntegerField()
     turn_timer_seconds = models.PositiveIntegerField(blank=True, null=True)
+    turn_started_at = models.DateTimeField(blank=True, null=True)
     draw_stacking = models.BooleanField(default=False)
     jump_in = models.BooleanField(default=False)
     draw_until_playable = models.BooleanField(default=False)
