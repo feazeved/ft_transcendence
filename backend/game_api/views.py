@@ -177,12 +177,12 @@ class GameViewSet(viewsets.GenericViewSet):
 				raise ValidationError("This game has already started or finished.")
 			if GamePlayer.objects.filter(game=game, user=request.user).exists():
 				raise ValidationError("You're already in this game.")
-
-			seat_count = game.players.count()
-			if seat_count >= game.max_seats:
+			taken = set(game.players.values_list("seat", flat=True))
+			seat = next((i for i in range(game.max_seats) if i not in taken), None)
+			if seat is None:
 				raise ValidationError("This game is full")
 
-			GamePlayer.objects.create(game=game, user=request.user, seat=seat_count, display_name=request.user.display_name or request.user.username)
+			GamePlayer.objects.create(game=game, user=request.user, seat=seat, display_name=request.user.display_name or request.user.username)
 		_broadcast_game_update(game)
 		return Response(GameDetailSerializer(self.get_queryset().get(pk=game.pk)).data)
 
