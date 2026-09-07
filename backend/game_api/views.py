@@ -2,12 +2,13 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models import Q, Count, Max
 from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.db import transaction
 
 from game_engine import GameSettings
 from game_engine import start_game as engine_start_game
@@ -17,7 +18,7 @@ from .models import Friendship, FriendshipStatus, User, Game, GamePlayer, GameSt
 from .serializers import (
 	FriendshipSerializer, FriendshipTargetSerializer, PublicProfileSerializer, GameCreateSerializer, GameDetailSerializer, GameListSerializer,
 	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer, ChatMessageSerializer, ConversationSerializer,
-	TournamentCreateSerializer, TournamentDetailSerializer, TournamentListSerializer,
+	TournamentCreateSerializer, TournamentDetailSerializer, TournamentListSerializer, LiveGameSerializer,
 )
 from .consumers import broadcast_game_update as _broadcast_game_update
 
@@ -229,10 +230,16 @@ class GameViewSet(viewsets.GenericViewSet):
 
 		game.state = state_to_dict(new_state)
 		game.status = GameStatus.IN_PROGRESS
+		game.turn_started_at = timezone.now()
 		game.save(update_fields=["state", "status"])
 
 		_broadcast_game_update(game)
 		return Response(GameDetailSerializer(self.get_queryset().get(pk=game.pk)).data)
+
+	@action(detail=False, methods=["get"])
+	def live(self, request):
+		games = self.get_queryset().filter(status=GameStatus.IN_PROGRESS)
+		return Response(LiveGameSerializer(games, many=True).data)
 
 class StatsPagination(PageNumberPagination):
 	page_size = 20
