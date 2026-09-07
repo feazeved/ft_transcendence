@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from . import spectators
 from .models import (
 	Friendship, Game, GamePlayer, GameStatus, ChatMessage, Conversation, 
 	ConversationRead, Tournament, TournamentParticipant, MODIFIER_FIELDS as _MODIFIER_FIELDS
@@ -242,3 +243,13 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Tournament
 		fields = ("name", "max_participants")
+
+class LiveGameSerializer(GameListSerializer):
+	spectator_count = serializers.SerializerMethodField()
+
+	class Meta(GameListSerializer.Meta):
+		fields = GameListSerializer.Meta.fields + ("spectator_count",)
+		read_only_fields = fields
+
+	def get_spectator_count(self, game):
+		return spectators.spectator_count(game.pk)
