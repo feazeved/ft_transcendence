@@ -1,16 +1,3 @@
-// Shared shape + mock helpers for game rooms, used by the create-room popup
-// (CreateRoomModal), the room list (Play) and the room page (Room).
-//
-// The setting keys line up with the backend `Game` model (game_api/models.py)
-// so the create payload is close to submit-ready:
-//   max_players         -> Game.max_seats
-//   starting_hand_size   -> Game.starting_hand_size
-//   turn_timer_seconds   -> Game.turn_timer_seconds
-//   stacking_draw_two    -> Game.stacking_draw_two
-//   jump_in              -> Game.jump_in
-//   draw_until_playable  -> Game.draw_until_playable
-//   seven_swap / zero    -> Game.seven_zero  (backend keeps a single flag today)
-
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 10
 export const MIN_HAND_SIZE = 2
