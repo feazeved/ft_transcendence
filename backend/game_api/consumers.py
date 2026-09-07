@@ -9,7 +9,7 @@ from django.db import transaction
 from game_engine import Color, GameOver, IllegalMove, card_from_dict, card_to_dict, draw_card, pass_turn, play_card, state_from_dict, state_to_dict
 
 from . import presence
-from .models import Game, GamePlayer, GameStatus, ChatMessage, ChatMessageType, Conversation, ConversationRead
+from .models import Game, GamePlayer, GameStatus, ChatMessage, ChatMessageType, Conversation, ConversationRead, Tournament
 from .serializers import ChatMessageSerializer
 
 User = get_user_model()
@@ -163,6 +163,9 @@ class GameConsumer(WebsocketConsumer):
 					for position, ranked_player in enumerate(ranked, start=1):
 						GamePlayer.objects.filter(pk=int(ranked_player.player_id)).update(finish_position=position)
 					game.save(update_fields=["state", "status", "finished_at", "winner"])
+					if game.tournament_id is not None:
+						tournament = Tournament.objects.select_for_update().get(pk=game.tournament_id)
+						tournament.maybe_advance(game.tournament_round)
 				else:
 					game.save(update_fields=["state"])
 		except (IllegalMove, GameOver) as exc:
