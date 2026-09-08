@@ -57,8 +57,8 @@ const CreateRoomModal = ({ open, onClose, onCreate }) => {
 		const trimmed = name.trim()
 		if (!trimmed) return setError("Give the room a name.")
 
-		const { max_players, starting_hand_size, turn_timer_seconds } = settings
-		if (max_players < MIN_PLAYERS || max_players > MAX_PLAYERS)
+		const { max_seats, starting_hand_size, turn_timer_seconds } = settings
+		if (max_seats < MIN_PLAYERS || max_seats > MAX_PLAYERS)
 			return setError(`Max players must be between ${MIN_PLAYERS} and ${MAX_PLAYERS}.`)
 		if (starting_hand_size < MIN_HAND_SIZE)
 			return setError(`Starting hand needs at least ${MIN_HAND_SIZE} cards.`)
@@ -97,8 +97,8 @@ const CreateRoomModal = ({ open, onClose, onCreate }) => {
 							type="number"
 							min={MIN_PLAYERS}
 							max={MAX_PLAYERS}
-							value={settings.max_players}
-							onChange={setNumber("max_players")}
+							value={settings.max_seats}
+							onChange={setNumber("max_seats")}
 							className={fieldClass}
 						/>
 					</div>

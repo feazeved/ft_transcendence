@@ -1,7 +1,7 @@
 import { Outlet } from "react-router"
 import Header from "./NavBar.jsx"
 import Footer from "./Footer.jsx"
-import bg1 from "../assets/bg.jpg"
+import bg1 from "../assets/bg_1920.webp"
 
 function Layout() {
 	return (
