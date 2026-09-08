@@ -86,7 +86,7 @@ class User(AbstractUser):
     last_seen_at = models.DateTimeField(blank=True, null=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
 
-    DEFAULT_AVATAR_URL = f'{settings.STATIC_URL}avatars/default.png'
+    DEFAULT_AVATAR_URL = f'{settings.STATIC_URL}avatars/default.jpg'
     ONLINE_THRESHOLD = timezone.timedelta(minutes=5)
 
     @property
