@@ -6,7 +6,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Friendship, Game, GamePlayer, GameStatus, ChatMessage, Conversation, ConversationRead, MODIFIER_FIELDS as _MODIFIER_FIELDS
+from . import spectators
+from .models import (
+	Friendship, Game, GamePlayer, GameStatus, ChatMessage, Conversation, 
+	ConversationRead, Tournament, TournamentParticipant, MODIFIER_FIELDS as _MODIFIER_FIELDS
+)
 
 User = get_user_model()
 
@@ -164,7 +168,6 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 		fields = ("id", "user", "message_type", "body", "invited_game", "created_at")
 		read_only_fields = fields
 
-
 class ConversationSerializer(serializers.ModelSerializer):
 	other_participant = serializers.SerializerMethodField()
 	last_message = serializers.SerializerMethodField()
@@ -190,3 +193,63 @@ class ConversationSerializer(serializers.ModelSerializer):
 		if read_state is not None:
 			unread = unread.filter(created_at__gt=read_state.last_read_at)
 		return unread.count()
+
+class TournamentParticipantSerializer(serializers.ModelSerializer):
+	user = PublicProfileSerializer(read_only=True)
+
+	class Meta:
+		model = TournamentParticipant
+		fields = ("user", "seed", "final_position")
+		read_only_fields = fields
+
+class TournamentMatchSerializer(serializers.ModelSerializer):
+	players = GamePlayerSerializer(many=True, read_only=True)
+	winner = PublicProfileSerializer(read_only=True)
+
+	class Meta:
+		model = Game
+		fields = ("public_id", "tournament_round", "status", "players", "winner", "finished_at")
+		read_only_fields = fields
+
+class TournamentListSerializer(serializers.ModelSerializer):
+	created_by = PublicProfileSerializer(read_only=True)
+	participant_count = serializers.SerializerMethodField()
+
+	class Meta:
+		model = Tournament
+		fields = ("public_id", "name", "created_by", "status", "max_participants", "participant_count", "created_at")
+		read_only_fields = fields
+
+	def get_participant_count(self, tournament):
+		return tournament.participants.count()
+
+class TournamentDetailSerializer(TournamentListSerializer):
+	participants = TournamentParticipantSerializer(many=True, read_only=True)
+	winner = PublicProfileSerializer(read_only=True)
+	rounds = serializers.SerializerMethodField()
+
+	class Meta(TournamentListSerializer.Meta):
+		fields = TournamentListSerializer.Meta.fields + ("participants", "winner", "finished_at", "rounds")
+		read_only_fields = fields
+
+	def get_rounds(self, tournament):
+		matches = (tournament.games.select_related("winner").prefetch_related("players__user").order_by("tournament_round", "id"))
+		grouped = {}
+		for match in matches:
+			grouped.setdefault(match.tournament_round, []).append(match)
+		return [{"round": round_number, "matches": TournamentMatchSerializer(round_matches, many=True).data} for round_number, round_matches in sorted(grouped.items())]
+
+class TournamentCreateSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Tournament
+		fields = ("name", "max_participants")
+
+class LiveGameSerializer(GameListSerializer):
+	spectator_count = serializers.SerializerMethodField()
+
+	class Meta(GameListSerializer.Meta):
+		fields = GameListSerializer.Meta.fields + ("spectator_count",)
+		read_only_fields = fields
+
+	def get_spectator_count(self, game):
+		return spectators.spectator_count(game.pk)

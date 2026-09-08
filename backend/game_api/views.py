@@ -2,22 +2,24 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models import Q, Count, Max
 from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.db import transaction
 
 from game_engine import GameSettings
 from game_engine import start_game as engine_start_game
 from game_engine import state_to_dict
 
-from .models import Friendship, FriendshipStatus, User, Game, GamePlayer, GameStatus, Conversation, MODIFIER_FIELDS
+from .models import Friendship, FriendshipStatus, User, Game, GamePlayer, GameStatus, Conversation, Tournament, TournamentParticipant, MODIFIER_FIELDS
 from .serializers import (
 	FriendshipSerializer, FriendshipTargetSerializer, PublicProfileSerializer, GameCreateSerializer, GameDetailSerializer, GameListSerializer,
 	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer, ChatMessageSerializer, ConversationSerializer,
-	)
+	TournamentCreateSerializer, TournamentDetailSerializer, TournamentListSerializer, LiveGameSerializer,
+)
 from .consumers import broadcast_game_update as _broadcast_game_update
 
 @ensure_csrf_cookie
@@ -210,7 +212,10 @@ class GameViewSet(viewsets.GenericViewSet):
 	def start(self, request, public_id=None):
 		game = get_object_or_404(Game, public_id=public_id)
 
-		if game.host_id != request.user.id:
+		if game.tournament_id is not None:
+			if not GamePlayer.objects.filter(game=game, user=request.user).exists():
+				raise PermissionDenied("Only participants in this match can start it.")
+		elif game.host_id != request.user.id:
 			raise PermissionDenied("Only the host can start the game.")
 		if game.status != GameStatus.PENDING:
 			raise ValidationError("This game has already started or finished.")
@@ -225,10 +230,16 @@ class GameViewSet(viewsets.GenericViewSet):
 
 		game.state = state_to_dict(new_state)
 		game.status = GameStatus.IN_PROGRESS
+		game.turn_started_at = timezone.now()
 		game.save(update_fields=["state", "status"])
 
 		_broadcast_game_update(game)
 		return Response(GameDetailSerializer(self.get_queryset().get(pk=game.pk)).data)
+
+	@action(detail=False, methods=["get"])
+	def live(self, request):
+		games = self.get_queryset().filter(status=GameStatus.IN_PROGRESS)
+		return Response(LiveGameSerializer(games, many=True).data)
 
 class StatsPagination(PageNumberPagination):
 	page_size = 20
@@ -318,3 +329,68 @@ class GameChatHistoryView(generics.ListAPIView):
 		if not GamePlayer.objects.filter(game=game, user=self.request.user).exists():
 			raise PermissionDenied("Not a participant in this game.")
 		return game.chat_messages.select_related("user").order_by("-created_at")
+
+class TournamentViewSet(viewsets.GenericViewSet):
+	queryset = Tournament.objects.all()
+	lookup_field = "public_id"
+
+	def get_serializer_class(self):
+		if self.action == "create":
+			return TournamentCreateSerializer
+		if self.action == "list":
+			return TournamentListSerializer
+		return TournamentDetailSerializer
+
+	def get_queryset(self):
+		return Tournament.objects.select_related("created_by", "winner").prefetch_related("participants__user", "games__players__user", "games__winner")
+
+	def list(self, request):
+		tournaments = self.get_queryset().filter(status=GameStatus.PENDING)
+		return Response(TournamentListSerializer(tournaments, many=True).data)
+
+	def retrieve(self, request, public_id=None):
+		tournament = get_object_or_404(self.get_queryset(), public_id=public_id)
+		return Response(TournamentDetailSerializer(tournament).data)
+
+	def create(self, request):
+		create_serializer = TournamentCreateSerializer(data=request.data)
+		create_serializer.is_valid(raise_exception=True)
+		tournament = create_serializer.save(created_by=request.user)
+		TournamentParticipant.objects.create(tournament=tournament, user=request.user)
+		return Response(TournamentDetailSerializer(self.get_queryset().get(pk=tournament.pk)).data, status=201)
+
+	@action(detail=True, methods=["post"])
+	def register(self, request, public_id=None):
+		with transaction.atomic():
+			tournament = get_object_or_404(Tournament.objects.select_for_update(), public_id=public_id)
+			if tournament.status != GameStatus.PENDING:
+				raise ValidationError("Registration is closed.")
+			if TournamentParticipant.objects.filter(tournament=tournament, user=request.user).exists():
+				raise ValidationError("Already registered.")
+			if tournament.participants.count() >= tournament.max_participants:
+				raise ValidationError("Tournament is full.")
+			TournamentParticipant.objects.create(tournament=tournament, user=request.user)
+		return Response(TournamentDetailSerializer(self.get_queryset().get(pk=tournament.pk)).data)
+
+	@action(detail=True, methods=["post"])
+	def unregister(self, request, public_id=None):
+		tournament = get_object_or_404(Tournament, public_id=public_id)
+		if tournament.status != GameStatus.PENDING:
+			raise ValidationError("Can't leave a tournament that has already started.")
+		deleted, _ = TournamentParticipant.objects.filter(tournament=tournament, user=request.user).delete()
+		if deleted == 0:
+			raise ValidationError("You're not registered for this tournament.")
+		return Response(status=204)
+
+	@action(detail=True, methods=["post"])
+	def start(self, request, public_id=None):
+		tournament = get_object_or_404(Tournament, public_id=public_id)
+		if tournament.created_by_id != request.user.id:
+			raise PermissionDenied("Only the creator can start the tournament.")
+		if tournament.status != GameStatus.PENDING:
+			raise ValidationError("This tournament has already started or finished.")
+		if tournament.participants.count() < 2:
+			raise ValidationError("Need at least 2 participants to start.")
+
+		tournament.start()
+		return Response(TournamentDetailSerializer(self.get_queryset().get(pk=tournament.pk)).data)
