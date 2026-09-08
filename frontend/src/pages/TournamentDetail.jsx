@@ -17,7 +17,7 @@ function TournamentDetail() {
 	const { config } = tournament
 	const format = FORMATS[config.format]
 	const structure = computeStructure(config)
-	const rules = enabledHouseRuleLabels(config.houseRules)
+	const rules = enabledHouseRuleLabels(config)
 
 	// TODO backend: POST /tournaments/:id/join, then read the live roster back
 	// (and, once matches exist, redirect a signed-up player into their table).
@@ -25,7 +25,7 @@ function TournamentDetail() {
 	const [status, setStatus] = useState(tournament.status)
 	const isHost = !!user && tournament.host === user.username
 	const joined = !!user && participants.some((p) => p.name === user.username)
-	const isFull = participants.length >= config.players
+	const isFull = participants.length >= config.max_participants
 
 	function joinTournament() {
 		if (!user) {
@@ -39,8 +39,8 @@ function TournamentDetail() {
 	// TODO backend: POST /tournaments/:id/start — the server locks the roster,
 	// draws the first round's tables and moves everyone into their match.
 	function startTournament() {
-		if (!isHost || status !== "scheduled" || participants.length < 2) return
-		setStatus("ongoing")
+		if (!isHost || status !== "pending" || participants.length < 2) return
+		setStatus("in_progress")
 	}
 
 	return (
@@ -77,7 +77,7 @@ function TournamentDetail() {
 
 			<div className="mb-6">
 				<h3 className="mb-3 text-lg font-bold">
-					Participants <span className="text-sm font-normal text-white/50">{participants.length}/{config.players}</span>
+					Participants <span className="text-sm font-normal text-white/50">{participants.length}/{config.max_participants}</span>
 				</h3>
 				{participants.length ? (
 					<ul className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-3">
@@ -138,38 +138,38 @@ function TournamentDetail() {
 					<dl className="space-y-1 text-sm">
 						<div className="flex justify-between gap-2">
 							<dt className="text-white/90">Players</dt>
-							<dd>{config.players}</dd>
+							<dd>{config.max_participants}</dd>
 						</div>
 						<div className="flex justify-between gap-2">
 							<dt className="text-white/90">Players per table</dt>
-							<dd>{config.playersPerTable}</dd>
+							<dd>{config.players_per_table}</dd>
 						</div>
 						<div className="flex justify-between gap-2">
 							<dt className="text-white/90">Advance per table</dt>
-							<dd>{config.advancePerTable}</dd>
+							<dd>{config.advance_per_table}</dd>
 						</div>
 						<div className="flex justify-between gap-2">
 							<dt className="text-white/90">Starting cards</dt>
-							<dd>{config.startingCards}</dd>
+							<dd>{config.starting_hand_size}</dd>
 						</div>
 						<div className="flex justify-between gap-2">
 							<dt className="text-white/90">Turn timer</dt>
-							<dd>{config.turnTimeSeconds}s</dd>
+							<dd>{config.turn_timer_seconds}s</dd>
 						</div>
 						{config.format === "knockout" ? (
 							<div className="flex justify-between gap-2">
 								<dt className="text-white/90">Final</dt>
-								<dd>{config.finalBestOf3 ? "Best of 3" : "1 match"}</dd>
+								<dd>{config.final_best_of_3 ? "Best of 3" : "1 match"}</dd>
 							</div>
 						) : (
 							<>
 								<div className="flex justify-between gap-2">
 									<dt className="text-white/90">Matches per round</dt>
-									<dd>{config.matchesPerRound}</dd>
+									<dd>{config.matches_per_round}</dd>
 								</div>
 								<div className="flex justify-between gap-2">
 									<dt className="text-white/90">Matches in the final</dt>
-									<dd>{config.matchesInFinal}</dd>
+									<dd>{config.matches_in_final}</dd>
 								</div>
 							</>
 						)}
@@ -200,7 +200,7 @@ function TournamentDetail() {
 				</button>
 				{status === "finished" ? (
 					<span className="rounded-lg border border-white/10 px-5 py-2 text-sm text-white/40">Tournament finished</span>
-				) : status === "ongoing" ? (
+				) : status === "in_progress" ? (
 					<span className="rounded-lg border border-white/10 px-5 py-2 text-sm text-white/40">Tournament in progress</span>
 				) : isHost ? (
 					<button
