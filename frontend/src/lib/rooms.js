@@ -1,101 +1,49 @@
+// Shared shape + helpers for game rooms, used by the create-room popup
+// (CreateRoomModal), the room list (Play) and the room page (Room).
+
+// Every setting key here is exactly the field name the backend `Game` model
+// uses (backend/game_api/models.py), so a settings object goes straight into
+// POST /api/games/ with no step in between.
+
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 10
 export const MIN_HAND_SIZE = 2
 export const MIN_TURN_TIMER = 10
 export const MAX_TURN_TIMER = 300
 
-// A room that's full still lets people in to watch. Spectators hold no chair and
-// can't act; when a seat frees up any of them may claim it and start playing.
 export const MAX_SPECTATORS = 6
 
-// Optional rule modifiers, in display order. Each renders as a toggle.
-export const RULE_TOGGLES = [
-	{ key: "stacking_draw_two", label: "Stacking draw cards", hint: "Answer a +2 with a +2, or a +4 with a +4, instead of drawing (no cross-stacking)." },
+export const MODIFIER_TOGGLES = [
+	{ key: "draw_stacking", label: "Stacking draw cards", hint: "Answer a +2 with a +2, or a +4 with a +4, instead of drawing (no cross-stacking)." },
 	{ key: "jump_in", label: "Jump in", hint: "Play an identical card out of turn to cut in." },
 	{ key: "draw_until_playable", label: "Draw until playable", hint: "Keep drawing until you get a card you can play." },
 	{ key: "seven_swap", label: "Seven swap", hint: "Playing a 7 swaps hands with a player of your choice." },
-	{ key: "zero", label: "Zero rotate", hint: "Playing a 0 passes every hand to the next player." },
-	{ key: "spectate", label: "Allow spectator", hint: "Allow players to spectate your game." },
+	{ key: "zero_swap", label: "Zero rotate", hint: "Playing a 0 passes every hand to the next player." },
+]
+
+export const RULE_TOGGLES = [
+	...MODIFIER_TOGGLES,
+	{ key: "allow_spectators", label: "Allow spectators", hint: "Let people watch your game without holding a seat." },
 ]
 
 export function defaultRoomSettings() {
 	return {
-		max_players: 4,
+		max_seats: 4,
 		starting_hand_size: 7,
 		turn_timer_seconds: 60,
-		stacking_draw_two: false,
+		draw_stacking: false,
 		jump_in: false,
 		draw_until_playable: false,
 		seven_swap: false,
-		zero: false,
-		spectate: true,
+		zero_swap: false,
+		allow_spectators: true,
 	}
 }
 
-// Short human-friendly id others type to find the room (Game.join_code is
-// max 8 chars). Ambiguous characters (0/O, 1/I) left out on purpose.
-export function makeRoomCode(length = 4) {
-	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-	let code = ""
-	for (let i = 0; i < length; i++) {
-		code += alphabet[Math.floor(Math.random() * alphabet.length)]
-	}
-	return code
+export function enabledRuleLabels(source = {}) {
+	return MODIFIER_TOGGLES.filter((rule) => source[rule.key]).map((rule) => rule.label)
 }
 
-// Turns the settings object into "Stacking +2 · Seven swap · Hand 7" style
-// chips for the room list / room header.
-export function enabledRuleLabels(settings = {}) {
-	return RULE_TOGGLES.filter((r) => settings[r.key]).map((r) => r.label)
-}
-
-export function hasAnyModifier(settings = {}) {
-	return RULE_TOGGLES.some((r) => settings[r.key])
-}
-
-export function joinRoom(room, user, { asSpectator = false } = {}) {
-	if (!user?.username) return room
-	const spectators = room.spectators ?? []
-	const alreadyIn =
-		room.players.some((p) => p.name === user.username) ||
-		spectators.some((s) => s.name === user.username)
-	if (alreadyIn) return room
-
-	const person = {
-		name: user.username,
-		avatar: user.avatar ?? "/profile/default.jpg",
-		isHost: room.host === user.username,
-	}
-	if (!asSpectator && room.players.length < room.settings.max_players) {
-		return { ...room, players: [...room.players, person] }
-	}
-	// Room has spectating switched off: no seat means no entry at all.
-	if (room.settings.spectate === false) return room
-	if (spectators.length < MAX_SPECTATORS) {
-		return { ...room, spectators: [...spectators, person] }
-	}
-	return room
-}
-
-export function roomIsFull(room) {
-	const spectators = room.spectators ?? []
-	const seatsFull = room.players.length >= room.settings.max_players
-	if (room.settings.spectate === false) return seatsFull
-	return seatsFull && spectators.length >= MAX_SPECTATORS
-}
-
-export function mockRoom(code) {
-	const settings = defaultRoomSettings()
-	return {
-		code,
-		name: `Room ${code}`,
-		host: "simba",
-		status: "pending",
-		settings,
-		players: [
-			{ name: "simba", avatar: "/profile/daniel.png", isHost: true },
-			{ name: "feazeved", avatar: "/profile/fifipe.png", isHost: false },
-		],
-		spectators: [],
-	}
+export function hasAnyModifier(source = {}) {
+	return MODIFIER_TOGGLES.some((rule) => source[rule.key])
 }
