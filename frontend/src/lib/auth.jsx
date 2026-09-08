@@ -52,6 +52,9 @@ export function AuthProvider({ children }) {
 	)
 }
 
+// Provider and hook belong together. Splitting them into three files to satisfy
+// Fast Refresh costs more than the full reload it saves on a file we rarely touch.
+// oxlint-disable-next-line react/only-export-components
 export function useAuth() {
 	const ctx = useContext(AuthContext)
 	if (!ctx) throw new Error("useAuth must be used within <AuthProvider>")
