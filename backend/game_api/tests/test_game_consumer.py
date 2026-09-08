@@ -61,14 +61,14 @@ def _find_legal_card(hand, current_color):
 
 @override_settings(CHANNEL_LAYERS=IN_MEMORY_LAYER)
 class ConnectionTests(TransactionTestCase):
-	async def test_a_non_participant_cannot_connect(self):
+	async def test_a_non_participant_connects_as_a_spectator_not_rejected(self):
 		alice = await sync_to_async(User.objects.create_user)(username="alice", email="a@example.com", password="x")
 		outsider = await sync_to_async(User.objects.create_user)(username="eve", email="e@example.com", password="x")
 		game = await sync_to_async(Game.objects.create)(host=alice, max_seats=4, starting_hand_size=7)
 		await sync_to_async(GamePlayer.objects.create)(game=game, user=alice, seat=0)
 
 		communicator, connected = await _connect_to_game(outsider, game)
-		self.assertFalse(connected)
+		self.assertTrue(connected)
 		await communicator.disconnect()
 
 	async def test_a_participant_can_connect_and_receives_initial_state(self):

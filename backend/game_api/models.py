@@ -1,4 +1,5 @@
 import uuid
+import random
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
@@ -86,7 +87,7 @@ class User(AbstractUser):
     last_seen_at = models.DateTimeField(blank=True, null=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
 
-    DEFAULT_AVATAR_URL = f'{settings.STATIC_URL}avatars/default.png'
+    DEFAULT_AVATAR_URL = f'{settings.STATIC_URL}avatars/default.jpg'
     ONLINE_THRESHOLD = timezone.timedelta(minutes=5)
 
     @property
@@ -142,7 +143,55 @@ class Tournament(models.Model):
     winner = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments_won'
     )
+    created_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(blank=True, null=True)
+
+    def start(self):
+        participants = list(self.participants.select_related('user'))
+        random.shuffle(participants)
+        for i, participant in enumerate(participants, start=1):
+            participant.seed = i
+        TournamentParticipant.objects.bulk_update(participants, ['seed'])
+
+        self.status = GameStatus.IN_PROGRESS
+        self.save(update_fields=['status'])
+        self._start_round(1, [p.user for p in participants])
+
+    def _start_round(self, round_number, players):
+        players = list(players)
+        random.shuffle(players)
+
+        bye_player = players.pop() if len(players) % 2 == 1 else None
+        for i in range(0, len(players), 2):
+            player_a, player_b = players[i], players[i + 1]
+            game = Game.objects.create(
+                host=player_a, tournament=self, tournament_round=round_number,
+                max_seats=2, starting_hand_size=7,
+            )
+            GamePlayer.objects.create(game=game, user=player_a, seat=0)
+            GamePlayer.objects.create(game=game, user=player_b, seat=1)
+
+        if bye_player is not None:
+            bye_game = Game.objects.create(
+                host=bye_player, tournament=self, tournament_round=round_number,
+                max_seats=2, starting_hand_size=7,
+                status=GameStatus.FINISHED, winner=bye_player, finished_at=timezone.now(),
+            )
+            GamePlayer.objects.create(game=bye_game, user=bye_player, seat=0, finish_position=1)
+
+    def maybe_advance(self, finished_round):
+        round_games = self.games.filter(tournament_round=finished_round)
+        if round_games.filter(status__in=[GameStatus.PENDING, GameStatus.IN_PROGRESS]).exists():
+            return
+
+        winners = [g.winner for g in round_games if g.winner_id is not None]
+        if len(winners) <= 1:
+            self.status = GameStatus.FINISHED
+            self.winner = winners[0] if winners else None
+            self.finished_at = timezone.now()
+            self.save(update_fields=['status', 'winner', 'finished_at'])
+        else:
+            self._start_round(finished_round + 1, winners)
 
     def __str__(self):
         return self.name
@@ -175,6 +224,7 @@ class Game(models.Model):
     max_seats = models.PositiveSmallIntegerField(validators=[MinValueValidator(2), MaxValueValidator(10)])
     starting_hand_size = models.PositiveSmallIntegerField()
     turn_timer_seconds = models.PositiveIntegerField(blank=True, null=True)
+    turn_started_at = models.DateTimeField(blank=True, null=True)
     draw_stacking = models.BooleanField(default=False)
     jump_in = models.BooleanField(default=False)
     draw_until_playable = models.BooleanField(default=False)

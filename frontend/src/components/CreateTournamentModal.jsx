@@ -46,7 +46,7 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 	const setToggle = (key) => (checked) => setConfig((c) => ({ ...c, [key]: checked }))
 
 	const setHouseRule = (key) => (checked) =>
-		setConfig((c) => ({ ...c, houseRules: { ...c.houseRules, [key]: checked } }))
+		setConfig((c) => ({ ...c, [key]: checked }))
 
 	const goToSettings = () => setStep(2)
 	const goBack = () => setStep(1)
@@ -129,9 +129,9 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 							<input
 								id="t-players"
 								type="number"
-								min={LIMITS.players.min}
-								max={LIMITS.players.max}
-								value={config.players}
+								min={LIMITS.max_participants.min}
+								max={LIMITS.max_participants.max}
+								value={config.max_participants}
 								onChange={setNumber("players")}
 								className={fieldClass}
 							/>
@@ -143,10 +143,10 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 							<input
 								id="t-per-table"
 								type="number"
-								min={LIMITS.playersPerTable.min}
-								max={LIMITS.playersPerTable.max}
-								value={config.playersPerTable}
-								onChange={setNumber("playersPerTable")}
+								min={LIMITS.players_per_table.min}
+								max={LIMITS.players_per_table.max}
+								value={config.players_per_table}
+								onChange={setNumber("players_per_table")}
 								className={fieldClass}
 							/>
 						</div>
@@ -156,8 +156,8 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 							</label>
 							<select
 								id="t-advance"
-								value={config.advancePerTable}
-								onChange={setValue("advancePerTable")}
+								value={config.advance_per_table}
+								onChange={setValue("advance_per_table")}
 								className={fieldClass}
 							>
 								<option value={1}>1</option>
@@ -175,10 +175,10 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 							<input
 								id="t-cards"
 								type="number"
-								min={LIMITS.startingCards.min}
-								max={LIMITS.startingCards.max}
-								value={config.startingCards}
-								onChange={setNumber("startingCards")}
+								min={LIMITS.starting_hand_size.min}
+								max={LIMITS.starting_hand_size.max}
+								value={config.starting_hand_size}
+								onChange={setNumber("starting_hand_size")}
 								className={fieldClass}
 							/>
 						</div>
@@ -189,10 +189,10 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 							<input
 								id="t-timer"
 								type="number"
-								min={LIMITS.turnTimeSeconds.min}
-								max={LIMITS.turnTimeSeconds.max}
-								value={config.turnTimeSeconds}
-								onChange={setNumber("turnTimeSeconds")}
+								min={LIMITS.turn_timer_seconds.min}
+								max={LIMITS.turn_timer_seconds.max}
+								value={config.turn_timer_seconds}
+								onChange={setNumber("turn_timer_seconds")}
 								className={fieldClass}
 							/>
 						</div>
@@ -201,8 +201,8 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 					{config.format === "knockout" ? (
 						<Toggle
 							label="Final played best of 3"
-							checked={config.finalBestOf3}
-							onChange={setToggle("finalBestOf3")}
+							checked={config.final_best_of_3}
+							onChange={setToggle("final_best_of_3")}
 						/>
 					) : (
 						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -212,8 +212,8 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 								</label>
 								<select
 									id="t-matches-round"
-									value={config.matchesPerRound}
-									onChange={setValue("matchesPerRound")}
+									value={config.matches_per_round}
+									onChange={setValue("matches_per_round")}
 									className={fieldClass}
 								>
 									<option value={3}>3</option>
@@ -230,8 +230,8 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 									type="number"
 									min={1}
 									step={2}
-									value={config.matchesInFinal}
-									onChange={setNumber("matchesInFinal")}
+									value={config.matches_in_final}
+									onChange={setNumber("matches_in_final")}
 									className={fieldClass}
 								/>
 							</div>
@@ -245,7 +245,7 @@ const CreateTournamentModal = ({ open, onClose, onCreate }) => {
 								key={rule.key}
 								label={rule.label}
 								hint={rule.hint}
-								checked={config.houseRules[rule.key]}
+								checked={config[rule.key]}
 								onChange={setHouseRule(rule.key)}
 							/>
 						))}

@@ -1,14 +1,6 @@
-// Rendered as a full page on /leaderboard, and as a popup when opened from the
-// navbar (see routes.jsx). Keep the markup layout-agnostic so it looks right in
-// both: no min-h-screen, no fixed positioning — just a centered content block.
 import { useMemo, useState } from "react"
 import { useAuth } from "@/lib/auth.jsx"
 
-// Defined once in index.css (`.rainbow-shadow` / the --rainbow-* vars).
-const RAINBOW = "rainbow-shadow"
-
-// TODO(backend): replace with api.get("/leaderboard") — expect
-// [{ username, avatar, wins, losses }, ...]; rank/sort can stay client-side.
 const MOCK_PLAYERS = [
 	{ username: "simssba", avatar: "/profile/daniel.png", wins: 128, losses: 41 },
 	{ username: "feazeved", avatar: "/profile/fifipe.png", wins: 113, losses: 52 },
@@ -23,7 +15,6 @@ const MOCK_PLAYERS = [
 	{ username: "newbie", avatar: "/profile/default.jpg", wins: 6, losses: 19 },
 ]
 
-// How the table can be ordered. `get` pulls the sort value off a derived row.
 const SORTS = [
 	{ key: "wins", label: "Wins", get: (p) => p.wins },
 	{ key: "winRate", label: "Win rate", get: (p) => p.winRate },
@@ -36,8 +27,6 @@ function Leaderboard() {
 	const { user } = useAuth()
 	const [sortKey, setSortKey] = useState("wins")
 
-	// Derive games / win rate once, then order by the chosen column. Ties fall
-	// back to win count so the list stays stable when sorting by rate or games.
 	const rows = useMemo(() => {
 		const sort = SORTS.find((s) => s.key === sortKey) ?? SORTS[0]
 		return MOCK_PLAYERS.map((p) => {

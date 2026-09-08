@@ -1,92 +1,77 @@
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import CreateRoomModal from "@/components/CreateRoomModal.jsx"
+import api from "@/lib/api.js"
 import { useAuth } from "@/lib/auth.jsx"
-import {
-	defaultRoomSettings,
-	hasAnyModifier,
-	joinRoom,
-	makeRoomCode,
-	MAX_SPECTATORS,
-} from "@/lib/rooms.js"
+import { hasAnyModifier, MAX_SPECTATORS } from "@/lib/rooms.js"
 import cardVerse from "../assets/one_card_verse.svg"
 
-const ROOMS = [
-	room("3i2", "guesttt", 3, { ...defaultRoomSettings(), max_players: 5, jump_in: true }, 1),
-	room("38G", "daniel", 2, { ...defaultRoomSettings(), max_players: 6 }),
-	room("18r", "feazeved", 5, { ...defaultRoomSettings(), max_players: 5, spectate: false }, 2),
-	room("178", "guest_11", 10, { ...defaultRoomSettings(), max_players: 10 }, 4),
-	room("10x", "lucas", 3, { ...defaultRoomSettings(), max_players: 10, spectate: false }),
-	room("9Qk", "ana", 1, { ...defaultRoomSettings(), max_players: 10 }),
-	room("21n", "pedro", 3, { ...defaultRoomSettings(), max_players: 5, zero: true }),
-]
-
-function room(code, host, playerCount, settings, spectatorCount = 0) {
-	return {
-		code,
-		name: `${host}'s table`,
-		host,
-		status: "pending",
-		settings,
-		players: Array.from({ length: playerCount }, (_, i) => ({
-			name: i === 0 ? host : `player_${i + 1}`,
-			avatar: "/profile/default.jpg",
-			isHost: i === 0,
-		})),
-		spectators: Array.from({ length: spectatorCount }, (_, i) => ({
-			name: `watcher_${i + 1}`,
-			avatar: "/profile/default.jpg",
-			isHost: false,
-		})),
-	}
-}
-
 const RAINBOW = "rainbow-shadow"
+
+// Rooms are cheap to fetch, so just re-ask on a timer.
+const REFRESH_MS = 5000
 
 function Play() {
 	const navigate = useNavigate()
 	const { user } = useAuth()
-	const [rooms, setRooms] = useState(ROOMS)
+	const [rooms, setRooms] = useState([])
 	const [query, setQuery] = useState("")
-	const [selected, setSelected] = useState(null)
+	const [selectedCode, setSelectedCode] = useState(null)
 	const [creating, setCreating] = useState(false)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState("")
+
+	const loadRooms = useCallback(async () => {
+		try {
+			setRooms(await api.get("/games/"))
+			setError("")
+		} catch (err) {
+			setError(err.message)
+		} finally {
+			setLoading(false)
+		}
+	}, [])
+
+	useEffect(() => {
+		// loadRooms is async: the setState calls land after the await, never
+		// synchronously. The rule can't see through the async boundary.
+		// oxlint-disable-next-line react/set-state-in-effect
+		loadRooms()
+		const timer = setInterval(loadRooms, REFRESH_MS)
+		return () => clearInterval(timer)
+	}, [loadRooms])
 
 	const visible = rooms.filter((r) =>
-		`${r.name} ${r.host} #${r.code}`.toLowerCase().includes(query.trim().toLowerCase()),
+		`${r.name} ${r.host?.username ?? ""} #${r.join_code}`
+			.toLowerCase()
+			.includes(query.trim().toLowerCase()),
 	)
 
-	const selectedFull = !!selected && selected.players.length >= selected.settings.max_players
-	const selectedCanSpectate = !!selected?.settings.spectate
+	const selected = rooms.find((r) => r.join_code === selectedCode) ?? null
+	const selectedFull = !!selected && selected.player_count >= selected.max_seats
+	const selectedCanSpectate =
+		!!selected?.allow_spectators && (selected?.spectator_count ?? 0) < MAX_SPECTATORS
 
-	function handleCreate({ name, settings }) {
-		const code = makeRoomCode()
-		const host = user?.username ?? "you"
-		const newRoom = {
-			code,
-			name,
-			host,
-			status: "pending",
-			settings,
-			players: [{ name: host, avatar: user?.avatar ?? "/profile/default.jpg", isHost: true }],
-			spectators: [],
+	async function handleCreate({ name, settings }) {
+		// The settings keys are already the backend's field names, so the whole
+		// object goes over as-is.
+		try {
+			const room = await api.post("/games/", { name, ...settings })
+			setCreating(false)
+			navigate(`/room/${room.join_code}`)
+		} catch (err) {
+			setError(err.message)
 		}
-		// TODO(backend): POST /games/ with { name, ...settings } (map max_players
-		// -> max_seats, seven_swap|zero -> seven_zero), use the returned join_code.
-		setRooms((rs) => [newRoom, ...rs])
-		setCreating(false)
-		navigate(`/room/${code}`, { state: { room: newRoom } })
 	}
 
 	function openRoom(room) {
 		if (!user) {
-			navigate("/login", { state: { from: `/room/${room.code}` } })
+			navigate("/login", { state: { from: `/room/${room.join_code}` } })
 			return
 		}
-		// TODO(backend): POST /games/:code/join, then navigate with the server room.
-		const joined = joinRoom(room, user)
-		if (joined === room) return // room was full — no seat, no spectator slot
-		setRooms((rs) => rs.map((r) => (r.code === joined.code ? joined : r)))
-		navigate(`/room/${joined.code}`, { state: { room: joined } })
+		// Room takes it from here: it claims a seat (or a spectator slot) itself,
+		// so arriving by a shared link or a refresh works the same as clicking.
+		navigate(`/room/${room.join_code}`)
 	}
 
 	function joinSelected() {
@@ -108,14 +93,13 @@ function Play() {
 
 			<ul className="grid max-h-[52vh] grid-cols-2 gap-3 overflow-y-auto p-6 sm:grid-cols-3">
 				{visible.map((r) => {
-					const isSelected = selected?.code === r.code
-					const modifiers = hasAnyModifier(r.settings)
-					const specCount = r.spectators?.length ?? 0
+					const isSelected = selectedCode === r.join_code
+					const modifiers = hasAnyModifier(r)
 					return (
-						<li key={r.code}>
+						<li key={r.join_code}>
 							<button
 								type="button"
-								onClick={() => setSelected(r)}
+								onClick={() => setSelectedCode(r.join_code)}
 								onDoubleClick={() => openRoom(r)}
 								aria-pressed={isSelected}
 								className={`flex w-full flex-col items-center gap-2 rounded-xl border bg-black p-4 text-center transition-transform hover:scale-105 cursor-pointer ${
@@ -126,13 +110,13 @@ function Play() {
 									<img src={cardVerse} alt="one card verse" width={20} />
 								</span>
 								<span className="font-bold leading-tight">
-									{r.host} <span className="text-white/70">#{r.code}</span>
+									{r.host?.username ?? "—"} <span className="text-white/70">#{r.join_code}</span>
 								</span>
 								<span className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-white/70">
-									<span>👤 {r.players.length}/{r.settings.max_players}</span>
-									{r.settings.spectate ? (
+									<span>👤 {r.player_count}/{r.max_seats}</span>
+									{r.allow_spectators ? (
 										<span className="text-white/70">
-											👁 {specCount}/{MAX_SPECTATORS}
+											👁 {r.spectator_count}/{MAX_SPECTATORS}
 										</span>
 									) : (
 										<span className="text-white/40" title="Spectating off">
@@ -147,12 +131,21 @@ function Play() {
 						</li>
 					)
 				})}
-				{visible.length === 0 && (
+				{loading && rooms.length === 0 && (
+					<li className="col-span-full py-8 text-center text-white/50">Loading rooms…</li>
+				)}
+				{!loading && visible.length === 0 && (
 					<li className="col-span-full py-8 text-center text-white/50">
-						No rooms match “{query}”.
+						{rooms.length === 0 ? "No open rooms yet — make one." : `No rooms match “${query}”.`}
 					</li>
 				)}
 			</ul>
+
+			{error && (
+				<p role="alert" className="mt-3 text-center text-sm text-red-400">
+					{error}
+				</p>
+			)}
 
 			<div className="mt-5 flex flex-wrap items-center justify-center gap-3">
 				<button
@@ -172,9 +165,9 @@ function Play() {
 						? "Join room"
 						: selectedFull
 							? selectedCanSpectate
-								? `Spectate ${selected.host} #${selected.code}`
-								: `${selected.host} #${selected.code} is full`
-							: `Join ${selected.host} #${selected.code}`}
+								? `Spectate ${selected.host?.username} #${selected.join_code}`
+								: `${selected.host?.username} #${selected.join_code} is full`
+							: `Join ${selected.host?.username} #${selected.join_code}`}
 				</button>
 			</div>
 

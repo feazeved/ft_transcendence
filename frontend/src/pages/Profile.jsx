@@ -12,13 +12,135 @@ import { useAuth } from "../lib/auth.jsx"
 import pencil from "../assets/pencil.svg"
 import logoutIcon from "../assets/logout.svg"
 
-const DEFAULT_AVATAR = "/profile/default.jpg"
-
 async function toUploadableFile(avatar) {
 	if (avatar instanceof File) return avatar
 	const response = await fetch(avatar)
 	const blob = await response.blob()
 	return new File([blob], avatar.split("/").pop(), { type: blob.type })
+}
+
+// Changing a password is its own endpoint with its own validation, so it gets
+// its own form. Folding it into the profile save is what made the old field a
+// no-op: it looked editable, went nowhere, and reported nothing.
+function ChangePassword({ inputClass }) {
+	const { logout } = useAuth()
+	const navigate = useNavigate()
+	const [open, setOpen] = useState(false)
+	const [next, setNext] = useState("")
+	const [confirm, setConfirm] = useState("")
+	const [busy, setBusy] = useState(false)
+	const [error, setError] = useState("")
+	const [done, setDone] = useState(false)
+
+	const close = () => {
+		setOpen(false)
+		setNext("")
+		setConfirm("")
+		setError("")
+	}
+
+	const submit = async (e) => {
+		e.preventDefault()
+		setError("")
+		if (next !== confirm) return setError("The two passwords don't match.")
+
+		setBusy(true)
+		try {
+			await api.post("/auth/password/change/", {
+				new_password1: next,
+				new_password2: confirm,
+			})
+			// Changing the password rotates Django's session auth hash, so the
+			// cookie we are holding is already dead — every later call would 403.
+			// Say so plainly instead of leaving a page that silently stops working.
+			close()
+			setDone(true)
+		} catch (err) {
+			// The server rejects weak or too-common passwords — show what it said.
+			setError(err.message || "Could not change your password.")
+		} finally {
+			setBusy(false)
+		}
+	}
+
+	return (
+		<div className="px-3 pb-3">
+			<p className="text-sm tracking-wide text-white/60">Password</p>
+
+			{open ? (
+				<form onSubmit={submit}>
+					<PasswordInput
+						label="New password"
+						name="new-password"
+						value={next}
+						onChange={(e) => setNext(e.target.value)}
+						className={`${inputClass} mb-2 w-full`}
+					/>
+					<PasswordInput
+						label="Confirm new password"
+						name="confirm-password"
+						value={confirm}
+						onChange={(e) => setConfirm(e.target.value)}
+						className={`${inputClass} mb-3 w-full`}
+					/>
+					{error && (
+						<p role="alert" className="mb-3 text-sm text-red-400">
+							{error}
+						</p>
+					)}
+					<div className="flex justify-center gap-3">
+						<button
+							type="submit"
+							disabled={busy || !next}
+							className="rounded-lg border border-white px-4 py-2 transition-transform hover:scale-105 cursor-pointer disabled:opacity-50 disabled:hover:scale-100"
+						>
+							{busy ? "Updating…" : "Update password"}
+						</button>
+						<button
+							type="button"
+							onClick={close}
+							disabled={busy}
+							className="rounded-lg px-4 py-2 transition-transform hover:scale-105 cursor-pointer disabled:opacity-50 disabled:hover:scale-100"
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			) : (
+				<div className="mb-3">
+					{done ? (
+						<div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+							<p className="text-sm">
+								Password updated. Changing it signs you out everywhere, so you
+								need to log in again with the new one.
+							</p>
+							<button
+								type="button"
+								onClick={() => {
+									logout()
+									navigate("/login", { state: { from: "/profile" } })
+								}}
+								className="mt-2 rounded-lg border border-white px-3 py-1 text-sm transition-transform hover:scale-105 cursor-pointer"
+							>
+								Log in again
+							</button>
+						</div>
+					) : (
+						<div className="flex items-center gap-3">
+							<p className="text-lg">{"\u2022".repeat(8)}</p>
+							<button
+								type="button"
+								onClick={() => setOpen(true)}
+								className="rounded-lg border border-white px-3 py-1 text-sm transition-transform hover:scale-105 cursor-pointer"
+							>
+								Change
+							</button>
+						</div>
+					)}
+				</div>
+			)}
+		</div>
+	)
 }
 
 function Profile() {
@@ -27,15 +149,13 @@ function Profile() {
 	const [email] = useState(user?.email ?? "")
 	const [name, setName] = useState(user?.display_name ?? "")
 	const [username, setUsername] = useState(user?.username ?? "")
-	const [pass] = useState("& I gt78-1jd25")
-	const [avatar, setAvatar] = useState(user?.avatar_url ?? DEFAULT_AVATAR)
-	// TODO(backend): no stats endpoint yet — still mock until one exists.
-	const wins = 20
-	const lose = 30
-	const winRate = Math.round((wins / (wins + lose)) * 100)
+	// The backend always sends an avatar_url, falling back to the site default,
+	// so there is nothing to substitute here.
+	const [avatar, setAvatar] = useState(user?.avatar_url ?? "")
+	const [stats, setStats] = useState(null)
 
 	const [editing, setEditing] = useState(false)
-	const [draft, setDraft] = useState({ name, username, email, pass, avatar })
+	const [draft, setDraft] = useState({ name, username, email, avatar })
 	const [avatarPreview, setAvatarPreview] = useState(avatar)
 	const objectUrlRef = useRef(null)
 	const [saving, setSaving] = useState(false)
@@ -51,6 +171,23 @@ function Profile() {
 
 	useEffect(() => revokePreview, [])
 
+	// Stats are decoration: if they fail to load the page still works, so the
+	// error is swallowed and the numbers stay as dashes.
+	useEffect(() => {
+		if (!user?.public_id) return undefined
+		let cancelled = false
+
+		api.get(`/users/${user.public_id}/stats/`)
+			.then((data) => {
+				if (!cancelled) setStats(data)
+			})
+			.catch(() => {})
+
+		return () => {
+			cancelled = true
+		}
+	}, [user?.public_id])
+
 	const navigate = useNavigate()
 
 	const handleLogout = () => {
@@ -59,7 +196,7 @@ function Profile() {
 	}
 
 	const startEdit = () => {
-		setDraft({ name, username, email, pass, avatar })
+		setDraft({ name, username, email, avatar })
 		setAvatarPreview(avatar)
 		setError("")
 		setEditing(true)
@@ -125,7 +262,7 @@ function Profile() {
 		setPickerOpen(false)
 	}
 
-	const current = { name, username, email, pass }
+	const current = { name, username, email }
 	const editableRows = [
 		{ key: "name", label: "Name", type: "text" },
 		{ key: "email", label: "Email", type: "email", disabled: true },
@@ -193,28 +330,12 @@ function Profile() {
 					</div>
 				))}
 
-				{/* Password stays masked on the profile, editable (with eye toggle)
-				    only while editing. */}
-				<div>
-					<p className="text-sm tracking-wide text-white/60">Password</p>
-					{editing ? (
-						<PasswordInput
-							label=""
-							value={draft.pass}
-							onChange={setField("pass")}
-							required={false}
-							className="mb-3"
-						/>
-					) : (
-						<p className="text-lg mb-3">{"•".repeat(8)}</p>
-					)}
-				</div>
-
-				{/* Read-only stats. */}
+				{/* Read-only stats, straight off the server. A dash means they
+				    haven't loaded rather than a real zero. */}
 				{[
-					{ label: "Number of Triumphs", value: wins },
-					{ label: "Number of Humiliations", value: lose },
-					{ label: "Win rate", value: `${winRate} %` },
+					{ label: "Number of Triumphs", value: stats?.games_won ?? "—" },
+					{ label: "Number of Humiliations", value: stats?.games_lost ?? "—" },
+					{ label: "Win rate", value: stats ? `${stats.win_rate} %` : "—" },
 				].map(({ label, value }) => (
 					<div key={label}>
 						<p className="text-sm tracking-wide text-white/60">{label}</p>
@@ -271,6 +392,8 @@ function Profile() {
 					</div>
 				)}
 			</form>
+
+			<ChangePassword inputClass={inputClass} />
 
 			{/* Picking an image only updates the draft — it's sent to the backend
 			    with everything else on Save. */}

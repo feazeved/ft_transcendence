@@ -8,8 +8,8 @@ from django.db import transaction
 
 from game_engine import Color, GameOver, IllegalMove, card_from_dict, card_to_dict, draw_card, pass_turn, play_card, state_from_dict, state_to_dict
 
-from . import presence
-from .models import Game, GamePlayer, GameStatus, ChatMessage, ChatMessageType, Conversation, ConversationRead
+from . import presence, spectators
+from .models import Game, GamePlayer, GameStatus, ChatMessage, ChatMessageType, Conversation, ConversationRead, Tournament
 from .serializers import ChatMessageSerializer
 
 User = get_user_model()
@@ -88,34 +88,47 @@ class GameConsumer(WebsocketConsumer):
 			self.close()
 			return
 
-		try:
-			game_player = GamePlayer.objects.select_related("user").get(game=game, user=user)
-		except GamePlayer.DoesNotExist:
-			self.close()
-			return
-
 		self.user = user
 		self.game = game
-		self.game_player = game_player
 		self.group_name = f"game_{game.pk}"
+
+		try:
+			self.game_player = GamePlayer.objects.select_related("user").get(game=game, user=user)
+			self.is_spectator = False
+		except GamePlayer.DoesNotExist:
+			self.game_player = None
+			self.is_spectator = True
 
 		async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
 		self.accept()
-		GamePlayer.objects.filter(pk=game_player.pk).update(is_connected=True)
+
+		if self.is_spectator:
+			spectators.register_spectator(game.pk)
+		else:
+			GamePlayer.objects.filter(pk=self.game_player.pk).update(is_connected=True)
+
+		with transaction.atomic():
+			game = Game.objects.select_for_update().get(pk=self.game.pk)
+			game, _ = self._expire_overdue_turn(game)
+		self.game = game
+
 		broadcast_game_update(self.game)
 
 	def disconnect(self, close_code):
-		game_player = getattr(self, "game_player", None)
-		if game_player is None:
+		is_spectator = getattr(self, "is_spectator", None)
+		if is_spectator is None:
 			return
 
 		async_to_sync(self.channel_layer.group_discard)(self.group_name, self.channel_name)
-		GamePlayer.objects.filter(pk=game_player.pk).update(is_connected=False)
+		if is_spectator:
+			spectators.unregister_spectator(self.game.pk)
+		else:
+			GamePlayer.objects.filter(pk=self.game_player.pk).update(is_connected=False)
 		broadcast_game_update(self.game)
 
 	def receive(self, text_data):
-		game_player = getattr(self, "game_player", None)
-		if game_player is None:
+		is_spectator = getattr(self, "is_spectator", None)
+		if is_spectator is None:
 			return
 
 		try:
@@ -128,6 +141,18 @@ class GameConsumer(WebsocketConsumer):
 		if action == "chat":
 			self._handle_chat(payload)
 			return
+
+		if is_spectator:
+			self._send_error("Spectators can't play.")
+			return
+		game_player = self.game_player
+
+		with transaction.atomic():
+			game = Game.objects.select_for_update().get(pk=self.game.pk)
+			game, expired = self._expire_overdue_turn(game)
+		if expired:
+			self.game = game
+			broadcast_game_update(game)
 
 		try:
 			with transaction.atomic():
@@ -163,6 +188,9 @@ class GameConsumer(WebsocketConsumer):
 					for position, ranked_player in enumerate(ranked, start=1):
 						GamePlayer.objects.filter(pk=int(ranked_player.player_id)).update(finish_position=position)
 					game.save(update_fields=["state", "status", "finished_at", "winner"])
+					if game.tournament_id is not None:
+						tournament = Tournament.objects.select_for_update().get(pk=game.tournament_id)
+						tournament.maybe_advance(game.tournament_round)
 				else:
 					game.save(update_fields=["state"])
 		except (IllegalMove, GameOver) as exc:
@@ -188,7 +216,7 @@ class GameConsumer(WebsocketConsumer):
 			return {"type": "game_state", "status": game.status, "state": None}
 
 		state = state_from_dict(game.state)
-		my_player_id = str(self.game_player.pk)
+		my_player_id = str(self.game_player.pk) if self.game_player is not None else None
 		connection_by_id = {
 			str(pk): is_connected
 			for pk, is_connected in GamePlayer.objects.filter(game=game).values_list("pk", "is_connected")
@@ -210,6 +238,8 @@ class GameConsumer(WebsocketConsumer):
 			"type": "game_state",
 			"status": game.status,
 			"your_player_id": my_player_id,
+			"is_spectator": self.game_player is None,
+			"spectator_count": spectators.spectator_count(game.pk),
 			"top_card": card_to_dict(state.top_card),
 			"current_color": state.current_color.value,
 			"current_player_id": state.players[state.current_player_index].player_id,
@@ -217,8 +247,35 @@ class GameConsumer(WebsocketConsumer):
 			"has_drawn_this_turn": state.has_drawn_this_turn,
 			"draw_pile_count": len(state.deck.draw_pile),
 			"winner_id": state.winner_id,
+			"turn_timer_seconds": game.turn_timer_seconds,
+			"turn_started_at": game.turn_started_at.isoformat() if game.turn_started_at else None,
 			"players": players,
 		}
+
+	def _expire_overdue_turn(self, game):
+		if game.turn_timer_seconds is None or game.state is None or game.status != GameStatus.IN_PROGRESS:
+			return game, False
+		if game.turn_started_at is None:
+			return game, False
+		
+		elapsed = (timezone.now() - game.turn_started_at).total_seconds()
+		if elapsed < game.turn_timer_seconds:
+			return game, False
+
+		state = state_from_dict(game.state)
+		current_player_id = state.players[state.current_player_index].player_id
+
+		try:
+			if not state.has_drawn_this_turn:
+				state = draw_card(state, current_player_id)
+			state = pass_turn(state, current_player_id)
+		except (IllegalMove, GameOver):
+			return game, False
+
+		game.state = state_to_dict(state)
+		game.turn_started_at = timezone.now()
+		game.save(update_fields=["state", "turn_started_at"])
+		return game, True
 
 	def _handle_chat(self, payload):
 		body = (payload.get("body") or "").strip()

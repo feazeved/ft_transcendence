@@ -4,12 +4,14 @@ from rest_framework.routers import DefaultRouter
 from .views import (
 	FriendshipViewSet, PublicProfileView, GameViewSet, LeaderboardView, MatchHistoryView,
 	UserStatsView, ConversationListView, ConversationMessagesView, GameChatHistoryView,
+	TournamentViewSet,
 )
 
 router = DefaultRouter()
 
 router.register("friendships", FriendshipViewSet, basename="friendship")
 router.register("games", GameViewSet, basename="game")
+router.register("tournaments", TournamentViewSet, basename="tournament")
 
 urlpatterns = [
 	path("users/<uuid:public_id>/", PublicProfileView.as_view(), name="public-profile"),
