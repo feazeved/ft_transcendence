@@ -1,62 +1,77 @@
 @import "tailwindcss";
 
 @theme {
-  --color-plum-50:  #f4e9f2;
-  --color-plum-100: #c89bc1;
-  --color-plum-200: #b287ab;
-  --color-plum-300: #9e7498;
-  --color-plum-400: #996f93;
-  --color-plum-500: #7a5675;
-  --color-plum-600: #5e3d59;
-  --color-plum-700: #482344;
-  --color-plum-800: #351831;
-  --color-plum-900: #20001b;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
-  --color-background: #482344;
-  --color-foreground: #f7eef5;
+/* Card colors*/
+  --color-red: #E02130;
+  --color-yellow: #FAB243;
+  --color-green: #169A4F;
+  --color-blue: #0077B9;
 
-  --color-card: #5e3d59;
-  --color-card-foreground: #f7eef5;
+/* Rainbow colors*/
+  --color-blue-raiwbow: #6a69b3;
+  --color-cyan-raiwbow: #49367c;
+  --color-ligh-purple-raiwbow: #89F1FB;
+  --color-purple-raiwbow: #0960ac;
+}
 
-  --color-popover: #7a5675;
-  --color-popover-foreground: #f7eef5;
+/* ======================================================================= */
+/*  Rainbow glow — the ONE place to restyle every rainbow shadow.          */
+/*  Used by Modal, HoverLink, the Login/Register buttons and the          */
+/*  Play/Room room cards. Tweak a value below and it changes everywhere.   */
+/*  In markup use the `rainbow-shadow` class (or `hover:rainbow-shadow`    */
+/*  for a hover-only glow).                                                */
+/* ======================================================================= */
+:root {
+  --rainbow-1: var(--color-blue-raiwbow);
+  --rainbow-2: var(--color-cyan-raiwbow);
+  --rainbow-3: var(--color-ligh-purple-raiwbow);
+  --rainbow-4: var(--color-purple-raiwbow);
+  --rainbow-shadow-offset: 4px;
+  --rainbow-shadow-blur: 16px;
 
-  --color-primary: #c89bc1;
-  --color-primary-foreground: #20001b;
+  --rainbow-shadow:
+    calc(-1 * var(--rainbow-shadow-offset)) calc(-1 * var(--rainbow-shadow-offset)) var(--rainbow-shadow-blur) 0 var(--rainbow-1),
+    var(--rainbow-shadow-offset)            calc(-1 * var(--rainbow-shadow-offset)) var(--rainbow-shadow-blur) 0 var(--rainbow-2),
+    var(--rainbow-shadow-offset)            var(--rainbow-shadow-offset)            var(--rainbow-shadow-blur) 0 var(--rainbow-3),
+    calc(-1 * var(--rainbow-shadow-offset)) var(--rainbow-shadow-offset)            var(--rainbow-shadow-blur) 0 var(--rainbow-4);
+}
 
-  --color-secondary: #7a5675;
-  --color-secondary-foreground: #f4e9f2;
-
-  --color-accent: #996f93;
-  --color-accent-foreground: #f7eef5;
-
-  --color-muted: #5e3d59;
-  --color-muted-foreground: #c89bc1;
-
-  --color-border: #7a5675;
-  --color-input: #351831;
-  --color-ring: #c89bc1;
-
-  --color-destructive: #d1495b;
-  --color-destructive-foreground: #f7eef5;
-  --color-success: #4fa87f;
+@utility rainbow-shadow {
+  box-shadow: var(--rainbow-shadow);
 }
 
 .navbar-rainbow-line {
   background-image: linear-gradient(
     to right,
-    #ef4444, #eab308, #22c55e, #3b82f6,
-    #ef4444, #eab308, #22c55e, #3b82f6
+    #0960ac, #89F1FB, #6a69b3, #49367c,
+    #0960ac, #89F1FB, #6a69b3, #49367c
   );
   background-size: 200% 100%;
   animation: rainbow-scroll 6s linear infinite;
 }
 
+/* Same rainbow, painted onto the text itself. */
+@utility rainbow-text {
+  background-image: linear-gradient(
+    to right,
+    #0960ac, #89F1FB, #6a69b3, #49367c,
+    #0960ac, #89F1FB, #6a69b3, #49367c
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: rainbow-scroll 6s linear infinite;
+}
+
 @keyframes rainbow-scroll {
   from {
-    background-position: 100% 0;
+    background-position: 200% 0;
   }
   to {
-    background-position: -100% 0;
+    background-position: 0% 0;
   }
 }

@@ -31,6 +31,8 @@ DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 
+AUTH_USER_MODEL = 'game_api.User'
+
 # In development, accept any Host header (LAN IP, container name, tunnel, etc.)
 # so the app is reachable however you browse to it.
 if DEBUG and '*' not in ALLOWED_HOSTS:
@@ -46,9 +48,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+	'django.contrib.sites',
 	# Third-party
 	'rest_framework',
 	'channels',
+	# Authentication
+	'allauth',
+	'allauth.account',
+	'allauth.socialaccount',
+	'allauth.socialaccount.providers.google',
+	'game_api.providers.fortytwo',
+	'dj_rest_auth',
+	'dj_rest_auth.registration',
 	# Local
 	'game_api',
 ]
@@ -61,6 +72,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+	'allauth.account.middleware.AccountMiddleware',
+	'game_api.middleware.UpdateLastSeenMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -83,11 +96,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
 
+REDIS_URL = env('REDIS_URL', default='redis://redis:6379/0')
+
 CHANNEL_LAYERS = {
 	'default': {
 		'BACKEND': 'channels_redis.core.RedisChannelLayer',
 		'CONFIG': {
-			'hosts': [env('REDIS_URL', default='redis://redis:6379/0')],
+			'hosts': [REDIS_URL],
 		},
 	}
 }
@@ -98,10 +113,62 @@ CHANNEL_LAYERS = {
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        #default=postgres://USER:PASSWORD@HOST:PORT/NAME
+        default='postgres://transcendence:transcendence@db:5432/transcendence'
 	)
 }
 
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+	'django.contrib.auth.backends.ModelBackend',
+	'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['username*', 'email*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_ADAPTER = 'game_api.adapters.AccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'game_api.adapters.SocialAccountAdapter'
+
+SOCIALACCOUNT_PROVIDERS = {
+	'google': {
+		'SCOPE': ['profile', 'email'],
+		'APP': {
+			'client_id': env('GOOGLE_OAUTH_CLIENT_ID', default=''),
+			'secret': env('GOOGLE_OAUTH_CLIENT_SECRET', default=''),
+		},
+	},
+	'fortytwo': {
+		'APP': {
+			'client_id': env('FORTYTWO_OAUTH_CLIENT_ID', default=''),
+			'secret': env('FORTYTWO_OAUTH_CLIENT_SECRET', default=''),
+		},
+	},
+}
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+REST_AUTH = {
+	'SESSION_LOGIN': True,
+	'USE_JWT': False,
+	'TOKEN_MODEL': None,
+	'REGISTER_SERIALIZER': 'game_api.serializers.RegisterSerializer',
+	'PASSWORD_RESET_SERIALIZER': 'game_api.serializers.PasswordResetSerializer',
+	'USER_DETAILS_SERIALIZER': 'game_api.serializers.UserDetailsSerializer',
+}
+
+REST_FRAMEWORK = {
+	'DEFAULT_AUTHENTICATION_CLASSES': [
+		'rest_framework.authentication.SessionAuthentication',
+	],
+	'DEFAULT_PERMISSION_CLASSES': [
+		'rest_framework.permissions.IsAuthenticated',
+	],
+}
+
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
@@ -140,12 +207,36 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Media files (user uploads, e.g. profile avatars)
+# https://docs.djangoproject.com/en/6.1/topics/files/
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = env('DJANGO_MEDIA_ROOT', default=str(BASE_DIR / 'media'))
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173').rstrip('/')
+
+DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='no-reply@localhost')
+
+if env.bool('DJANGO_EMAIL_USE_SMTP', default=False):
+	MAILERS = {
+		'default': {
+			'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+			'OPTIONS': {
+				'host': env('EMAIL_HOST'),
+				'port': env.int('EMAIL_PORT', default=587),
+				'use_tls': env.bool('EMAIL_USE_TLS', default=True),
+				'username': env('EMAIL_HOST_USER'),
+				'password': env('EMAIL_HOST_PASSWORD'),
+			},
+		},
+	}
+else:
+	MAILERS = {
+		'default': {
+			'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+		},
+	}
