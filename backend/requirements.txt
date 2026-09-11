@@ -16,3 +16,4 @@ sqlparse==0.5.5
 uvicorn[standard]==0.38.0
 pytest==9.1.1
 requests==2.34.2
+django-erd-generator==0.1.7
