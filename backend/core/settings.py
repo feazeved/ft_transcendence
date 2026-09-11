@@ -52,6 +52,7 @@ INSTALLED_APPS = [
 	# Third-party
 	'rest_framework',
 	'channels',
+    'django_erd_generator',
 	# Authentication
 	'allauth',
 	'allauth.account',
