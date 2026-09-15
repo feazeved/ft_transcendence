@@ -53,6 +53,12 @@ function Hero() {
 					</>
 				)}
 			</div>
+			<Link
+				to="/rules"
+				className="text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-white"
+			>
+				How to play
+			</Link>
 		</section>
 	)
 }
