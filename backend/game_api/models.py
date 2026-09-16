@@ -276,7 +276,7 @@ class GameSpectator(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("game, user")
+        unique_together = ("game", "user")
         ordering = ["joined_at"]
 
     def __str__(self):
