@@ -270,6 +270,17 @@ class GamePlayer(models.Model):
     def __str__(self):
         return f'seat {self.seat} in game {self.game_id}'
 
+class GameSpectator(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="spectators")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="spectating_games")
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("game, user")
+        ordering = ["joined_at"]
+
+    def __str__(self):
+        return f"{self.user.username} spectating {self.game.join_code}"
 
 class Conversation(models.Model):
     user_a = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_a')
