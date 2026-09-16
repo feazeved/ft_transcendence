@@ -74,7 +74,53 @@ function Friends() {
 		load()
 	}, [load])
 
-	})
+	const { friends, incoming, outgoing } = useMemo(() => {
+		const me = user?.public_id
+		const friends = []
+		const incoming = []
+		const outgoing = []
+
+		for (const row of rows) {
+			const iAmRequester = row.requester?.public_id === me
+			const other = iAmRequester ? row.addressee : row.requester
+
+			if (row.status === "accepted") friends.push({ id: row.id, person: other})
+			else if (row.status === "pending" && iAmRequester) outgoing.push({ id: row.id, person: other})
+			else if (row.status === "pending") incoming.push({ id: row.id, person: other})
+		}
+		return { friends, incoming, outgoing }
+	}, [rows, user?.public_id])
+
+	const act = async (id, run) => {
+		setBusyId(id)
+		setFormError("")
+		try {
+			await run()
+			await load()
+		} catch (err) {
+			setFormError(err.message)
+		} finally {
+			setBusyId(null)
+		}
+	}
+
+	const addFriend = async (e) => {
+		e.preventDefault()
+		const name = username.trim()
+		if (!name) return
+
+		setAdding(true)
+		setFormError("")
+		try {
+			await api.post("/friendship/", { username: name })
+			setUsername("")
+			await load()
+		} catch (err) {
+			setFormError(err.message)
+		} finally {
+			setAdding(false)
+		}
+	}
 }
 
 export default Friends
