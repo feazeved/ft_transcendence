@@ -1,10 +1,11 @@
+import uuid
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models import Q, Count, Max
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
-from rest_framework import generics, viewsets
+from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -140,7 +141,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
 
 class GameViewSet(viewsets.GenericViewSet):
 	queryset = Game.objects.all()
-	lookup_field = "public_id"
+	lookup_field = "code"
 
 	def get_serializer_class(self):
 		if self.action == "create":
@@ -150,28 +151,40 @@ class GameViewSet(viewsets.GenericViewSet):
 		return GameDetailSerializer
 
 	def get_queryset(self):
-		return Game.objects.select_related("host", "winner").prefetch_related("players__user")
+		return Game.objects.annotate(annotated_player_count=Count('players'), annotated_spectator_count=Count('spectators'))
+
+	def _resolve(self, code, select_for_update=False):
+		qs = self.get_queryset()
+		if select_for_update:
+			qs = qs.select_for_update()
+
+		try:
+			val = uuid.UUID(code)
+			return get_object_or_404(qs, public_id=val)
+		except (ValueError, TypeError, AttributeError):
+			pass
+		return get_object_or_404(qs, join_code__iexact=code)
 
 	def list(self, request):
 		games = [g for g in self.get_queryset().filter(status=GameStatus.PENDING) if g.players.count() < g.max_seats]
 		return Response(GameListSerializer(games, many=True).data)
 
-	def retrieve(self, request, public_id=None):
-		game =get_object_or_404(self.get_queryset(), public_id=public_id)
-		return Response(GameDetailSerializer(game).data)
+	def retrieve(self, request, code=None):
+		game = self._resolve(code)
+		return Response(GameDetailSerializer(game, context={'request': request}).data)
 
-	def create(self, request):
-		create_serializer = GameCreateSerializer(data=request.data)
-		create_serializer.is_valid(raise_exception=True)
-		game = create_serializer.save(host=request.user)
+	def create(self, request, *args, **kwargs):
+		serializer = GameCreateSerializer(data=request.data, context={'request': request})
+		serializer.is_valid(raise_exception=True)
+		game = serializer.save()
 
-		GamePlayer.objects.create(game=game, user=request.user, seat=0, display_name=request.user.display_name or request.user.username)
-		return Response(GameDetailSerializer(game).data, status=201)
+		GamePlayer.objects.create(game=game, user=request.user, seat=0, display_name=getattr(request.user, 'display_name', None) or request.user.username)
+		return Response(GameDetailSerializer(game, context={'request': request}).data, status=201)
 
 	@action(detail=True, methods=["post"])
-	def join(self, request, public_id=None):
+	def join(self, request, code=None):
 		with transaction.atomic():
-			game = get_object_or_404(Game.objects.select_for_update(), public_id=public_id)
+			game = self._resolve(code, select_for_update=True)
 
 			if game.status != GameStatus.PENDING:
 				raise ValidationError("This game has already started or finished.")
@@ -182,35 +195,37 @@ class GameViewSet(viewsets.GenericViewSet):
 			if seat is None:
 				raise ValidationError("This game is full")
 
-			GamePlayer.objects.create(game=game, user=request.user, seat=seat, display_name=request.user.display_name or request.user.username)
+			GamePlayer.objects.create(game=game, user=request.user, seat=seat, display_name=getattr(request.user, 'display_name', None) or request.user.username)
 		_broadcast_game_update(game)
-		return Response(GameDetailSerializer(self.get_queryset().get(pk=game.pk)).data)
+		fresh_game = self.get_queryset().get(pk=game.pk)
+		return Response(GameDetailSerializer(fresh_game, context={'request': request}).data)
 
 	@action(detail=True, methods=["post"])
-	def leave(self, request, public_id=None):
-		game = get_object_or_404(Game, public_id=public_id)
+	def leave(self, request, code=None):
+		with transaction.atomic():
+			game = self._resolve(code, select_for_update=True)
 
-		if game.status != GameStatus.PENDING:
-			raise ValidationError("Can't leave a game that has already started.")
-		
-		deleted, _ = GamePlayer.objects.filter(game=game, user=request.user).delete()
-		if deleted == 0:
-			raise ValidationError("You're not in this game.")
+			if game.status != GameStatus.PENDING:
+				raise ValidationError("Can't leave a game that has already started.")
 
-		if game.host_id == request.user.id:
-			next_up = GamePlayer.objects.filter(game=game).order_by("seat").first()
-			if next_up is not None:
-				game.host = next_up.user
-			else:
-				game.status = GameStatus.CANCELLED
-			game.save(update_fields=["host", "status"])
+			deleted, _ = GamePlayer.objects.filter(game=game, user=request.user).delete()
+			if deleted == 0:
+				raise ValidationError("You're not in this game.")
+
+			if game.host_id == request.user.id:
+				next_up = GamePlayer.objects.filter(game=game).order_by("seat").first()
+				if next_up is not None:
+					game.host = next_up.user
+				else:
+					game.status = GameStatus.CANCELLED
+				game.save(update_fields=["host", "status"])
 
 		_broadcast_game_update(game)
-		return Response(status=204)
+		return Response(status=status.HTTP_204_NO_CONTENT)
 
 	@action(detail=True, methods=["post"])
-	def start(self, request, public_id=None):
-		game = get_object_or_404(Game, public_id=public_id)
+	def start(self, request, code=None):
+		game = self._resolve(code)
 
 		if game.tournament_id is not None:
 			if not GamePlayer.objects.filter(game=game, user=request.user).exists():
@@ -234,7 +249,8 @@ class GameViewSet(viewsets.GenericViewSet):
 		game.save(update_fields=["state", "status"])
 
 		_broadcast_game_update(game)
-		return Response(GameDetailSerializer(self.get_queryset().get(pk=game.pk)).data)
+		fresh_game = self.get_queryset().get(pk=game.pk)
+		return Response(GameDetailSerializer(fresh_game, context={'request': request}).data)
 
 	@action(detail=False, methods=["get"])
 	def live(self, request):
@@ -350,7 +366,7 @@ class TournamentViewSet(viewsets.GenericViewSet):
 
 	def retrieve(self, request, public_id=None):
 		tournament = get_object_or_404(self.get_queryset(), public_id=public_id)
-		return Response(TournamentDetailSerializer(tournament).data)
+		return Response(TournamentDetailSerializer(tournament, context={'request': request}).data)
 
 	def create(self, request):
 		create_serializer = TournamentCreateSerializer(data=request.data)
