@@ -48,11 +48,33 @@ function FriendsSection({ title, count, empty, children }) {
 }
 
 function Friends() {
-	return (
-		<>
-			<h1>FRIENDS</h1>
-		</>
-	)
+	const { user } = useAuth()
+
+	const [rows, setRows] = useState([])
+	const [status, setStatus] = useState("loading")
+	const [error, setError] = useState("")
+
+	const [username, setUsername] = useState("")
+	const [formError, setFormError] = useState("")
+	const [adding, setAdding] = useState(false)
+	const [busyId, setBusyId] = useState(null)
+
+	const load = useCallback(async () => {
+		try {
+			const data = await api.get("/friendships")
+			setRows(Array.isArray(data) ? data : (data.results ?? []))
+			setStatus("ready")
+		} catch (err) {
+			setError(err.message)
+			setStatus("error")
+		}
+	}, [])
+
+	useEffect(() => {
+		load()
+	}, [load])
+
+	})
 }
 
 export default Friends
