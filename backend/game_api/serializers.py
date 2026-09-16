@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from . import spectators
 from .models import (
-	Friendship, Game, GamePlayer, GameStatus, ChatMessage, Conversation, 
+	Friendship, Game, GamePlayer, GameSpectator, GameStatus, ChatMessage, Conversation,
 	ConversationRead, Tournament, TournamentParticipant, MODIFIER_FIELDS as _MODIFIER_FIELDS
 )
 
@@ -94,6 +94,19 @@ class GamePlayerSerializer(serializers.ModelSerializer):
 		fields = ("id", "user", "kind", "seat", "display_name", "is_connected", "finish_position")
 		read_only_fields = fields
 
+class GameSpectatorSerializer(serializers.ModelSerializer):
+	public_id = serializers.ReadOnlyField(source="user.public_id")
+	username = serializers.ReadOnlyField(source="user.username")
+	display_name = serializers.SerializerMethodField()
+
+	class Meta:
+		model = GameSpectator
+		fields = ("public_id", "username", "display_name", "joined_at")
+		read_only_fields = fields
+
+	def get_display_name(self, obj):
+	    return getattr(obj.user, "display_name", None) or obj.user.username
+
 class GameListSerializer(serializers.ModelSerializer):
 	host = PublicProfileSerializer(read_only=True)
 	player_count = serializers.IntegerField(source='players.count', read_only=True)
@@ -107,6 +120,7 @@ class GameListSerializer(serializers.ModelSerializer):
 
 class GameDetailSerializer(GameListSerializer):
 	players = GamePlayerSerializer(many=True, read_only=True)
+	spectators = GameSpectatorSerializer(many=True, read_only=True)
 	winner = PublicProfileSerializer(read_only=True)
 
 	class Meta(GameListSerializer.Meta):
