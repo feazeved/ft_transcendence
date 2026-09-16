@@ -59,7 +59,7 @@ function Leaderboard() {
 		<section className="text-white mx-auto w-[min(88vw,860px)] py-2">
 			<div className="mb-4 flex flex-wrap items-center gap-3">
 				<h2 className="text-2xl font-bold">Leaderboard</h2>
-				<span className="text-white/50">{rows.length} players</span>
+				{status === "ready" && <span className="text-white/50">{rows.length} players</span>}
 				<div className="ml-auto flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1 text-sm">
 					{SORTS.map((s) => (
 						<button
@@ -87,47 +87,64 @@ function Leaderboard() {
 				<span className="text-right">Rate</span>
 			</div>
 
-			<ul className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
-				{rows.map((p) => {
-					const isMe = p.username === user?.username
-					const medal = MEDALS[p.rank - 1]
-					return (
-						<li key={p.username}>
-							<div
-								className={`grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 rounded-xl border bg-black px-4 py-2.5 sm:grid-cols-[2.5rem_1fr_4rem_4rem_4rem] ${
-									p.rank === 1 ? `border-yellow` : isMe ? "border-white" : "border-white/15"
-								}`}
-							>
-								<span className="text-center text-lg font-bold">
-									{medal ?? <span className="text-white/50">{p.rank}</span>}
-								</span>
+			{status === "loading" && (
+				<p className="py-8 text-center text-white/50">Loading...</p>
+			)}
 
-								<span className="flex min-w-0 items-center gap-3">
-									<img
-										src={p.avatar}
-										alt=""
-										className="h-9 w-9 shrink-0 rounded-full border border-white/20 object-cover"
-									/>
-									<span className="min-w-0">
-										<span className="block truncate font-bold leading-tight">
-											{p.username}
-											{isMe && <span className="ml-2 text-xs text-yellow">you</span>}
-										</span>
-										{/* Narrow-screen stat line; the sm: columns replace it. */}
-										<span className="text-xs text-white/50 sm:hidden">
-											{p.wins}W · {p.losses}L · {p.winRate}%
+			{status === "error" && (
+				<p role="alert" className="py-8 text-center text-red">
+					Couldn't load the leaderboard. {error}
+				</p>
+			)}
+
+			{status === "ready" && rows.length === 0 && (
+				<p className="py-8 text-center text-white/50">
+					No finished games yet - be the first.
+				</p>
+			)}
+
+			{status === "ready" && rows.length > 0 && (
+				<ul className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+					{rows.map((p) => {
+						const isMe = p.username === user?.username
+						const medal = MEDALS[p.rank - 1]
+						return (
+							<li key={p.id}>
+								<div
+									className={`grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 rounded-xl border bg-black px-4 py-2.5 sm:grid-cols-[2.5rem_1fr_4rem_4rem_4rem] ${p.rank === 1 ? `border-yellow` : isMe ? "border-white" : "border-white/15"
+										}`}
+								>
+									<span className="text-center text-lg font-bold">
+										{medal ?? <span className="text-white/50">{p.rank}</span>}
+									</span>
+
+									<span className="flex min-w-0 items-center gap-3">
+										<img
+											src={p.avatar}
+											alt=""
+											className="h-9 w-9 shrink-0 rounded-full border border-white/20 object-cover"
+										/>
+										<span className="min-w-0">
+											<span className="block truncate font-bold leading-tight">
+												{p.username}
+												{isMe && <span className="ml-2 text-xs text-yellow">you</span>}
+											</span>
+											{/* Narrow-screen stat line; the sm: columns replace it. */}
+											<span className="text-xs text-white/50 sm:hidden">
+												{p.wins}W · {p.losses}L · {p.winRate}%
+											</span>
 										</span>
 									</span>
-								</span>
 
-								<span className="hidden text-right font-bold text-green sm:block">{p.wins}</span>
-								<span className="hidden text-right text-white/70 sm:block">{p.losses}</span>
-								<span className="hidden text-right font-bold sm:block">{p.winRate}%</span>
-							</div>
-						</li>
-					)
-				})}
-			</ul>
+									<span className="hidden text-right font-bold text-green sm:block">{p.wins}</span>
+									<span className="hidden text-right text-white/70 sm:block">{p.losses}</span>
+									<span className="hidden text-right font-bold sm:block">{p.winRate}%</span>
+								</div>
+							</li>
+						)
+					})}
+				</ul>
+			)}
 		</section>
 	)
 }
