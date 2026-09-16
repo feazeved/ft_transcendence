@@ -1,19 +1,6 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/lib/auth.jsx"
-
-const MOCK_PLAYERS = [
-	{ username: "simssba", avatar: "/profile/daniel.png", wins: 128, losses: 41 },
-	{ username: "feazeved", avatar: "/profile/fifipe.png", wins: 113, losses: 52 },
-	{ username: "wallace", avatar: "/profile/wallace.png", wins: 97, losses: 60 },
-	{ username: "ana", avatar: "/profile/girl.jpg", wins: 88, losses: 44 },
-	{ username: "lucas", avatar: "/profile/alex.png", wins: 74, losses: 71 },
-	{ username: "simba", avatar: "/profile/dog.jpg", wins: 63, losses: 39 },
-	{ username: "the_duck", avatar: "/profile/duck.jpg", wins: 51, losses: 55 },
-	{ username: "roswell", avatar: "/profile/alien.jpg", wins: 44, losses: 48 },
-	{ username: "mr_whiskers", avatar: "/profile/cat.jpg", wins: 37, losses: 66 },
-	{ username: "guest_11", avatar: "/profile/smiley.jpg", wins: 22, losses: 74 },
-	{ username: "newbie", avatar: "/profile/default.jpg", wins: 6, losses: 19 },
-]
+import api from "@/lib/api.js"
 
 const SORTS = [
 	{ key: "wins", label: "Wins", get: (p) => p.wins },
