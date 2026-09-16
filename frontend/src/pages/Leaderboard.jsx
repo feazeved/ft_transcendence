@@ -107,7 +107,7 @@ function Leaderboard() {
 				<ul className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
 					{rows.map((p) => {
 						const isMe = p.username === user?.username
-						const medal = MEDALS[p.rank - 1]
+						const medal = p.games > 0 ? MEDALS[p.rank - 1] : undefined
 						return (
 							<li key={p.id}>
 								<div

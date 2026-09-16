@@ -120,11 +120,12 @@ class LeaderboardTests(TestCase):
 		self.assertEqual(usernames[0], "bob")
 		self.assertEqual(usernames[1], "alice")
 
-	def test_excludes_users_who_have_never_played(self):
-		_finished_game(winner=self.alice, others=[self.bob])
+	def test_includes_users_who_have_never_played(self):
 		response = self.client.get(reverse("leaderboard"))
-		usernames = [entry["username"] for entry in response.data["results"]]
-		self.assertNotIn("carol", usernames)
+		entries = {e["username"]: e for e in response.data["results"]}
+		self.assertIn("carol", entries)
+		self.assertEqual(entries["carol"]["games_played"], 0)
+		self.assertEqual(entries["carol"]["win_rate"], 0.0)
 
 	def test_includes_computed_win_rate(self):
 		_finished_game(winner=self.alice, others=[self.bob])

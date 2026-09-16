@@ -291,13 +291,13 @@ class LeaderboardView(generics.ListAPIView):
 
 	def get_queryset(self):
 		return (
-			User.objects.annotate(
+			User.objects.filter(is_active=True, deleted_at__isnull=True)
+			.annotate(
 				games_played_count=Count(
 					"game_seats", filter=Q(game_seats__game__status=GameStatus.FINISHED), distinct=True
 				),
 				games_won_count=Count("games_won", distinct=True),
 			)
-			.filter(games_played_count__gt=0)
 			.order_by("-games_won_count", "-games_played_count", "username")
 		)
 
