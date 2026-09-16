@@ -13,6 +13,31 @@ const MEDALS = ["🥇", "🥈", "🥉"]
 function Leaderboard() {
 	const { user } = useAuth()
 	const [sortKey, setSortKey] = useState("wins")
+	const [players, setPlayers] = useState([])
+	const [status, setStatus] = useState("loading")
+	const [error, setError] = useState("")
+
+	useEffect(() => {
+		let ignore = false
+
+		async function load() {
+			try {
+				const data = await api.get("/leaderboard/?page_size=100")
+				if (ignore) return
+				setPlayers(data.results ?? [])
+				setStatus("ready")
+			} catch (err) {
+				if (ignore) return
+				setError(err.message)
+				setStatus("error")
+			}
+		}
+
+		load()
+		return () => {
+			ignore = true
+		}
+	}, [])
 
 	const rows = useMemo(() => {
 		const sort = SORTS.find((s) => s.key === sortKey) ?? SORTS[0]
