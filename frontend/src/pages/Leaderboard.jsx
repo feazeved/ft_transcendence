@@ -41,13 +41,19 @@ function Leaderboard() {
 
 	const rows = useMemo(() => {
 		const sort = SORTS.find((s) => s.key === sortKey) ?? SORTS[0]
-		return MOCK_PLAYERS.map((p) => {
-			const games = p.wins + p.losses
-			return { ...p, games, winRate: games ? Math.round((p.wins / games) * 100) : 0 }
-		})
+		return players
+			.map((p) => ({
+				id: p.public_id,
+				username: p.username,
+				avatar: p.avatar_url,
+				games: p.games_played,
+				wins: p.games_won,
+				losses: p.games_played - p.games_won,
+				winRate: Math.round(p.win_rate),
+			}))
 			.sort((a, b) => sort.get(b) - sort.get(a) || b.wins - a.wins)
-			.map((p, i) => ({ ...p, rank: i + 1 }))
-	}, [sortKey])
+			.map((p, i) => ({ ...p, rank: i + 1}))
+	}, [players, sortKey])
 
 	return (
 		<section className="text-white mx-auto w-[min(88vw,860px)] py-2">
