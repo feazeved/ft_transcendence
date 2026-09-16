@@ -124,7 +124,7 @@ class GameDetailSerializer(GameListSerializer):
 	winner = PublicProfileSerializer(read_only=True)
 
 	class Meta(GameListSerializer.Meta):
-		fields = GameListSerializer.Meta.fields + ("starting_hand_size", "turn_timer_seconds", "players", "winner", "finished_at")
+		fields = GameListSerializer.Meta.fields + ("starting_hand_size", "turn_timer_seconds", "players", "spectators", "winner", "finished_at")
 		read_only_fields = fields
 
 class GameCreateSerializer(serializers.ModelSerializer):
