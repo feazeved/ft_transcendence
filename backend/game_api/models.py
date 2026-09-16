@@ -232,6 +232,7 @@ class Game(models.Model):
     mode = models.CharField(max_length=32, blank=True)
     name = models.CharField(max_length=64, blank=True, default="")
     join_code = models.CharField(max_length=10, unique=True, db_index=True, default=generate_code)
+    allow_spectators = models.BooleanField(default=True)
     max_seats = models.PositiveSmallIntegerField(validators=[MinValueValidator(2), MaxValueValidator(10)])
     starting_hand_size = models.PositiveSmallIntegerField()
     turn_timer_seconds = models.PositiveIntegerField(blank=True, null=True)

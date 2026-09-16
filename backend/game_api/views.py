@@ -154,9 +154,10 @@ class GameViewSet(viewsets.GenericViewSet):
 		return Game.objects.annotate(annotated_player_count=Count('players'), annotated_spectator_count=Count('spectators'))
 
 	def _resolve(self, code, select_for_update=False):
-		qs = self.get_queryset()
 		if select_for_update:
-			qs = qs.select_for_update()
+			qs = Game.objects.select_for_update()
+		else:
+		    qs = self.get_queryset()
 
 		try:
 			val = uuid.UUID(code)
