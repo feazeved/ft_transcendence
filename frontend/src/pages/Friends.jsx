@@ -61,7 +61,7 @@ function Friends() {
 
 	const load = useCallback(async () => {
 		try {
-			const data = await api.get("/friendships")
+			const data = await api.get("/friendships/")
 			setRows(Array.isArray(data) ? data : (data.results ?? []))
 			setStatus("ready")
 		} catch (err) {
@@ -112,7 +112,7 @@ function Friends() {
 		setAdding(true)
 		setFormError("")
 		try {
-			await api.post("/friendship/", { username: name })
+			await api.post("/friendships/", { username: name })
 			setUsername("")
 			await load()
 		} catch (err) {
