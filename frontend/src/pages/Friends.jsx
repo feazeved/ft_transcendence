@@ -121,6 +121,48 @@ function Friends() {
 			setAdding(false)
 		}
 	}
+
+	return (
+		<section className="mx-auto w-[min(88vw,720px)] py-2 text-white">
+			<h2 className="mb-4 text-2xl font-bold">Friends</h2>
+
+			<form onSubmit={addFriend} className="mb-4 flex gap-2">
+				<label htmlFor="add-friend" className="sr-only">
+					Username
+				</label>
+				<input
+					id="add-friend"
+					type="text"
+					value={username}
+					onChange={(e) => setUsername(e.target.value)}
+					placeholder="Add someone by username"
+					className={`${inputClass} flex-1`}
+				/>
+				<button
+					type="submit"
+					disabled={adding || !username.trim()}
+					className={actionButton}
+				>
+					{adding ? "Sending..." : "Send request"}
+				</button>
+			</form>
+
+			{formError && (
+				<p role="alert" className="mb-4 text-sm text-red-400">
+					{formError}
+				</p>
+			)}
+
+			{status === "loading" && <p className="text-white/50">Loading...</p>}
+
+			{status === "error" && (
+				<p role="alert" className="text-red-400">
+					Couldn't load your friends. {error}
+				</p>
+			)}
+
+		</section>
+	)
 }
 
 export default Friends
