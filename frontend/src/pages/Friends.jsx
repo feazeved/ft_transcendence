@@ -32,6 +32,21 @@ function PersonRow({ person, children }) {
 	)
 }
 
+function FriendsSection({ title, count, empty, children }) {
+	return (
+		<section className="mb-6">
+			<h3 className="mb-2 text-sm uppercase tracking-[0.15em] text-white/50">
+				{title} {count > 0 && <span className="text-white">({count})</span>}
+			</h3>
+			{count === 0 ? (
+				<p className="text-sm text-white/50">{empty}</p>
+			) : (
+				<ul className="space-y-2">{children}</ul>
+			)}
+		</section>
+	)
+}
+
 function Friends() {
 	return (
 		<>
