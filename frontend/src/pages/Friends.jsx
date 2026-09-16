@@ -161,6 +161,66 @@ function Friends() {
 				</p>
 			)}
 
+			{status === "ready" && (
+				<>
+					<FriendsSection title="Requests" const={incoming.length} empty="No pending requests.">
+						{incoming.map(({ id, person }) => (
+							<PersonRow key={id} person={person}>
+								<button
+									type="button"
+									disabled={busyId === id}
+									onClick={() => act(id, () => api.post(`/friendships/${id}/accept/`))}
+									className={actionButton}
+								>
+									Accept
+								</button>
+								<button
+									type="button"
+									disabled={busyId === id}
+									onClick={() => act(id, () => api.post(`/friendships/${id}/decline/`))}
+									className={actionButton}
+								>
+									Decline
+								</button>
+							</PersonRow>
+						))}
+					</FriendsSection>
+
+					<FriendsSection
+						title="Your friends"
+						count={friends.length}
+						empty="No friends yet - add someone above."
+					>
+						{friends.map(({ id, person }) => (
+							<PersonRow key={id} person={person}>
+								<button
+									type="button"
+									disabled={busyId === id}
+									onClick={() => act(id, () => api.delete(`/friendships/${id}/`))}
+									className={actionButton}
+								>
+									Remove
+								</button>
+							</PersonRow>
+						))}
+					</FriendsSection>
+
+					<FriendsSection title="Sent" count={outgoing.length} empty="Nothing waiting.">
+						{outgoing.map(({ id, person }) => (
+							<PersonRow key={id} person={person}>
+								<button
+									type="button"
+									disabled={busyId === id}
+									onClick={() => act(id, () => api.delete(`/friendships/${id}/`))}
+									className={actionButton}
+								>
+									Cancel
+								</button>
+							</PersonRow>
+						))}
+					</FriendsSection>
+				</>
+			)}
 		</section>
 	)
 }
