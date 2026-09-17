@@ -278,7 +278,7 @@ class GameViewSet(viewsets.GenericViewSet):
 		game.state = state_to_dict(new_state)
 		game.status = GameStatus.IN_PROGRESS
 		game.turn_started_at = timezone.now()
-		game.save(update_fields=["state", "status"])
+		game.save(update_fields=["state", "status", "turn_started_at"])
 
 		_broadcast_game_update(game)
 		fresh_game = self.get_queryset().get(pk=game.pk)
