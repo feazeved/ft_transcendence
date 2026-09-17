@@ -275,3 +275,9 @@ scratch/
 frontend/coverage/
 backend/staticfiles/
 backend/media/
+
+# Local machine-specific Docker Compose overrides
+docker-compose.override.yml
+
+# Personal deploy log — not meant to be shared in the repo
+deploy-notes.md

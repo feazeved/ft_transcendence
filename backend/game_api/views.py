@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models import Q, Count, Max
 from django.shortcuts import get_object_or_404
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
@@ -21,11 +21,20 @@ from .serializers import (
 	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer, ChatMessageSerializer, ConversationSerializer,
 	TournamentCreateSerializer, TournamentDetailSerializer, TournamentListSerializer, LiveGameSerializer,
 )
-from .consumers import broadcast_game_update as _broadcast_game_update
+from .consumers import broadcast_game_update as _broadcast_game_update, leave_pending_game
 
 @ensure_csrf_cookie
 def csrf(request):
 	return JsonResponse({'detail': 'CSRF cookie set'})
+
+
+def healthz(request):
+	try:
+		with connection.cursor() as cursor:
+			cursor.execute('SELECT 1')
+	except Exception:
+		return JsonResponse({'status': 'error'}, status=503)
+	return JsonResponse({'status': 'ok'})
 
 class PublicProfileView(generics.RetrieveAPIView):
 	queryset = User.objects.all()
@@ -151,13 +160,12 @@ class GameViewSet(viewsets.GenericViewSet):
 		return GameDetailSerializer
 
 	def get_queryset(self):
-		return Game.objects.annotate(annotated_player_count=Count('players'), annotated_spectator_count=Count('spectators'))
+		return Game.objects.all()
 
 	def _resolve(self, code, select_for_update=False):
+		qs = self.get_queryset()
 		if select_for_update:
-			qs = Game.objects.select_for_update()
-		else:
-		    qs = self.get_queryset()
+			qs = qs.select_for_update()
 
 		try:
 			val = uuid.UUID(code)
@@ -196,7 +204,6 @@ class GameViewSet(viewsets.GenericViewSet):
 			if seat is None:
 				raise ValidationError("This game is full")
 
-			GameSpectator.objects.filter(game=game, user=request.user).delete()
 			GamePlayer.objects.create(game=game, user=request.user, seat=seat, display_name=getattr(request.user, 'display_name', None) or request.user.username)
 		_broadcast_game_update(game)
 		fresh_game = self.get_queryset().get(pk=game.pk)
@@ -228,17 +235,12 @@ class GameViewSet(viewsets.GenericViewSet):
 			if game.status != GameStatus.PENDING:
 				raise ValidationError("Can't leave a game that has already started.")
 
-			deleted, _ = GamePlayer.objects.filter(game=game, user=request.user).delete()
-			if deleted == 0:
+			try:
+				game_player = GamePlayer.objects.get(game=game, user=request.user)
+			except GamePlayer.DoesNotExist:
 				raise ValidationError("You're not in this game.")
 
-			if game.host_id == request.user.id:
-				next_up = GamePlayer.objects.filter(game=game).order_by("seat").first()
-				if next_up is not None:
-					game.host = next_up.user
-				else:
-					game.status = GameStatus.CANCELLED
-				game.save(update_fields=["host", "status"])
+			leave_pending_game(game, game_player)
 
 		_broadcast_game_update(game)
 		return Response(status=status.HTTP_204_NO_CONTENT)

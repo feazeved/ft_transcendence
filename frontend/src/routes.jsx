@@ -21,6 +21,13 @@ const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy.jsx'))
 const TermsOfService = lazy(() => import('@/pages/TermsOfService.jsx'))
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'))
 
+// Dev-only playground at /dev/table: the game table drawn from fake game states.
+// Vite replaces `import.meta.env.DEV` with `true` under `vite` (npm run dev) and
+// `false` under `vite build`, so a production build turns this into `null` and
+// drops the import — the page and the fake data never reach the bundle.
+// Checking only in the <Route> below wouldn't be enough: the import would stay.
+const TablePlayground = import.meta.env.DEV ? lazy(() => import('@/pages/dev/TablePlayground.jsx')) : null
+
 // Pages that can also be shown as a popup. Reached normally (e.g. typing the URL
 // or refreshing) they render full-page; reached from a link that carries a
 // `background` location they render as a modal over that background page.
@@ -64,6 +71,8 @@ function AppRoutes() {
 					<Route path="/oauth/callback" element={<OAuthCallback />} />
 					<Route path="/privacy-policy" element={<PrivacyPolicy />} />
 					<Route path="/terms-of-service" element={<TermsOfService />} />
+					{/* Dev only: `TablePlayground` is null in a production build, so this route doesn't exist there. */}
+					{TablePlayground && <Route path="/dev/table" element={<TablePlayground />} />}
 					<Route path="*" element={<NotFound />} />
 				</Route>
 			</Routes>

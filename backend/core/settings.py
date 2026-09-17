@@ -67,6 +67,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+	# Serves STATIC_ROOT directly from the app process — there's no separate
+	# nginx/CDN in front of Render, so without this /static/ 404s whenever
+	# DEBUG=False (Django's dev static server only runs under DEBUG).
+	'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -82,7 +86,9 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # Searched before app templates, so account/email/* here overrides
+        # allauth's (game_api sits after allauth in INSTALLED_APPS and can't).
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -128,6 +134,8 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['username*', 'email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
+# Otherwise allauth prefixes every subject with "[<Site.name>] ", i.e. "[example.com] ".
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
 ACCOUNT_ADAPTER = 'game_api.adapters.AccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'game_api.adapters.SocialAccountAdapter'
 
@@ -171,6 +179,11 @@ CSRF_COOKIE_SECURE = not DEBUG
 CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Vercel's rewrites proxy to this backend as a plain external request, so the
+# Host header it sends is Render's own domain, not the public one visitors
+# see. Without this, request.build_absolute_uri() points at Render instead of Vercel
+USE_X_FORWARDED_HOST = True
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
@@ -187,6 +200,16 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
+]
+
+# Django's default (PBKDF2, 1.5M iterations) costs ~0.2s here and ~2.5s on
+# Render's CPU, which every login and signup paid for. Argon2 is both stronger
+# and an order of magnitude cheaper. PBKDF2 stays listed so existing passwords
+# still verify — Django rewrites each one to Argon2 on its owner's next login.
+PASSWORD_HASHERS = [
+	'game_api.hashers.Argon2Hasher',
+	'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+	'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
 ]
 
 
@@ -207,12 +230,35 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Defining STORAGES replaces Django's defaults wholesale, so 'default' must be
+# listed again — without it every media save (avatar upload, OAuth signup
+# picture) raises InvalidStorageError.
+STORAGES = {
+	'default': {
+		'BACKEND': 'django.core.files.storage.FileSystemStorage',
+	},
+	'staticfiles': {
+		'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+	},
+}
 
 # Media files (user uploads, e.g. profile avatars)
 # https://docs.djangoproject.com/en/6.1/topics/files/
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = env('DJANGO_MEDIA_ROOT', default=str(BASE_DIR / 'media'))
+
+
+# Background work
+# See game_api.background — threads, not a queue. Tests set this to False so
+# everything stays on one thread.
+
+RUN_TASKS_IN_BACKGROUND = env.bool('DJANGO_RUN_TASKS_IN_BACKGROUND', default=True)
+
+# How long a disconnected player's seat is held before the lobby hands off the
+# host (or closes the room, if they were alone) — long enough to survive a
+# page refresh.
+GAME_DISCONNECT_GRACE_SECONDS = env.int('DJANGO_GAME_DISCONNECT_GRACE_SECONDS', default=10)
 
 
 # Email

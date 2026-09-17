@@ -112,11 +112,6 @@ function Rules() {
 							</div>
 						</div>
 					</Section>
-
-					<Section title="Penalties">
-						<strong>Forgetting to shout "ONE"</strong> — If another player
-						catches it before the next turn begins, you draw 2 cards.
-					</Section>
 				</div>
 
 				<div className="mt-10 text-center">

@@ -35,9 +35,7 @@ const fieldClass =
 // Popup for creating a room: a display name plus every game setting. It doesn't
 // talk to the backend itself — on submit it hands the validated settings object
 // back through `onCreate`, and the caller (Play) decides what to do with it.
-//
-// The caller remounts this via a `key` tied to `open`, so state starts fresh
-// on every open and there's no reset-on-open effect to write.
+
 const CreateRoomModal = ({ open, onClose, onCreate }) => {
 	const [name, setName] = useState("")
 	const [settings, setSettings] = useState(defaultRoomSettings)

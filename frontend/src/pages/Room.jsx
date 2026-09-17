@@ -19,12 +19,16 @@ function Room() {
 	// only wait for the first message to arrive.
 	const [lobby, setLobby] = useState(null)
 	const [game, setGame] = useState(null)
-	const [ready, setReady] = useState(false)
+	const [publicId, setPublicId] = useState(null)
 	const [error, setError] = useState("")
 
 	// Claim a place before opening the socket — the server only lets players and
 	// spectators listen. Doing it here rather than on the Play page means a
 	// shared link, a refresh and a click all take the same path.
+	//
+	// The route param can be a join code (e.g. from the room list) rather than
+	// the UUID, but the socket route only accepts the UUID — so we resolve it
+	// from the game payload before opening the socket.
 	useEffect(() => {
 		if (!user) return
 		let cancelled = false
@@ -35,7 +39,7 @@ function Room() {
 				const mine = (person) => person?.user?.username === user.username
 				const alreadyIn = room.players.some(mine) || room.spectators.some(mine)
 				if (!alreadyIn) await api.post(`/games/${id}/join/`, {})
-				if (!cancelled) setReady(true)
+				if (!cancelled) setPublicId(room.public_id)
 			} catch (err) {
 				if (!cancelled) setError(err.message)
 			}
@@ -52,13 +56,15 @@ function Room() {
 			setGame(null)
 		} else if (data.type === "game_state") {
 			// The payload type flipping IS the "game started" signal.
+			if (data.state === null)
+				return
 			setGame(data)
 		} else if (data.type === "error") {
 			setError(data.message)
 		}
 	}, [])
 
-	const { connected, send } = useGameSocket(ready ? id : null, handleMessage)
+	const { connected, send } = useGameSocket(publicId, handleMessage)
 
 	if (!user) return <Navigate to="/login" replace state={{ from: `/room/${id}` }} />
 

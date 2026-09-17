@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>ONE</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{% block preheader %}{% endblock preheader %}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;">
+	<tr>
+		<td align="center" style="padding:32px 16px;">
+			<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background-color:#ffffff;border-radius:12px;overflow:hidden;">
+				<tr>
+					<td>
+						<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+							<tr>
+								<td width="25%" height="6" style="background-color:#E02130;font-size:0;line-height:0;">&nbsp;</td>
+								<td width="25%" height="6" style="background-color:#FAB243;font-size:0;line-height:0;">&nbsp;</td>
+								<td width="25%" height="6" style="background-color:#169A4F;font-size:0;line-height:0;">&nbsp;</td>
+								<td width="25%" height="6" style="background-color:#0077B9;font-size:0;line-height:0;">&nbsp;</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+				<tr>
+					<td style="padding:32px 32px 0;font-family:Poppins,Arial,Helvetica,sans-serif;font-size:28px;font-weight:800;letter-spacing:4px;color:#111827;">ONE</td>
+				</tr>
+				<tr>
+					<td style="padding:24px 32px 32px;font-family:Poppins,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#374151;">
+						<h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;color:#111827;">{% block heading %}{% endblock heading %}</h1>
+						{% block content %}{% endblock content %}
+					</td>
+				</tr>
+			</table>
+			<p style="margin:16px 0 0;font-family:Poppins,Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">See you in the game, the ONE team</p>
+		</td>
+	</tr>
+</table>
+</body>
+</html>

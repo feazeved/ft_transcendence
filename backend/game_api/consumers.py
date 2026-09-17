@@ -1,7 +1,9 @@
 import json
+import time
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db import transaction
@@ -9,10 +11,50 @@ from django.db import transaction
 from game_engine import Color, GameOver, IllegalMove, card_from_dict, card_to_dict, draw_card, pass_turn, play_card, state_from_dict, state_to_dict
 
 from . import presence, spectators
+from .background import run_in_background
 from .models import Game, GamePlayer, GameStatus, ChatMessage, ChatMessageType, Conversation, ConversationRead, Tournament
 from .serializers import ChatMessageSerializer
 
 User = get_user_model()
+
+
+def leave_pending_game(game, game_player):
+	"""
+	Remove a player from a still-pending game, handing the host off to the
+	next seat (by seat order) or closing the room if that was the last player.
+
+	Caller must hold `game` under select_for_update() inside a transaction —
+	shared between the explicit "leave" action and the disconnect grace period
+	below, so both paths make the same call.
+	"""
+	user_id = game_player.user_id
+	game_player.delete()
+	if game.host_id == user_id:
+		next_up = GamePlayer.objects.filter(game=game).order_by("seat").first()
+		if next_up is not None:
+			game.host = next_up.user
+		else:
+			game.status = GameStatus.CANCELLED
+		game.save(update_fields=["host", "status"])
+
+
+def _expire_disconnected_player(game_id, game_player_id):
+	time.sleep(settings.GAME_DISCONNECT_GRACE_SECONDS)
+
+	with transaction.atomic():
+		try:
+			game_player = GamePlayer.objects.select_related("game").get(pk=game_player_id)
+		except GamePlayer.DoesNotExist:
+			return
+		if game_player.is_connected:
+			return  # reconnected (e.g. a page refresh) within the grace period
+
+		game = Game.objects.select_for_update().get(pk=game_id)
+		if game.status != GameStatus.PENDING:
+			return
+		leave_pending_game(game, game_player)
+
+	broadcast_game_update(game)
 
 class PresenceConsumer(WebsocketConsumer):
 	def connect(self):
@@ -124,6 +166,8 @@ class GameConsumer(WebsocketConsumer):
 			spectators.unregister_spectator(self.game.pk)
 		else:
 			GamePlayer.objects.filter(pk=self.game_player.pk).update(is_connected=False)
+			if self.game.status == GameStatus.PENDING:
+				run_in_background(_expire_disconnected_player, self.game.pk, self.game_player.pk)
 		broadcast_game_update(self.game)
 
 	def receive(self, text_data):

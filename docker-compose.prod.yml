@@ -1,0 +1,33 @@
+# Production overrides: run alongside docker-compose.yml, never alone.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# `docker compose up` on its own (your normal dev command) is untouched: it
+# still runs the Vite dev server with hot-reload. This file replaces that with
+# a one-shot production build that nginx serves as static files instead of
+# proxying to the dev server.
+services:
+  frontend:
+    # Builds once into the frontend_dist volume, then exits. Not a long-running
+    # server — nginx is what actually serves the result.
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm build"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_dist:/app/dist
+
+  nginx:
+    volumes: !override
+      - certs:/etc/nginx/certs
+      - static_data:/usr/share/nginx/static:ro
+      - media_data:/usr/share/nginx/media:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_completed_successfully
+
+volumes:
+  frontend_dist:

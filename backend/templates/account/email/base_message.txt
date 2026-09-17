@@ -1,0 +1,4 @@
+{% autoescape off %}{% block content %}{% endblock content %}
+
+See you in the game,
+The ONE team{% endautoescape %}

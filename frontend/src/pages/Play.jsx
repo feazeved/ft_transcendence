@@ -42,7 +42,7 @@ function Play() {
 	}, [loadRooms])
 
 	const visible = rooms.filter((r) =>
-		`${r.name} ${r.host?.username ?? ""} #${r.join_code}`
+		`${r.name} #${r.join_code}`
 			.toLowerCase()
 			.includes(query.trim().toLowerCase()),
 	)
@@ -110,7 +110,7 @@ function Play() {
 									<img src={cardVerse} alt="one card verse" width={20} />
 								</span>
 								<span className="font-bold leading-tight">
-									{r.host?.username ?? "—"} <span className="text-white/70">#{r.join_code}</span>
+									{r.name || "—"} <span className="text-white/70">#{r.join_code}</span>
 								</span>
 								<span className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-white/70">
 									<span>👤 {r.player_count}/{r.max_seats}</span>
@@ -165,9 +165,9 @@ function Play() {
 						? "Join room"
 						: selectedFull
 							? selectedCanSpectate
-								? `Spectate ${selected.host?.username} #${selected.join_code}`
-								: `${selected.host?.username} #${selected.join_code} is full`
-							: `Join ${selected.host?.username} #${selected.join_code}`}
+								? `Spectate ${selected.name} #${selected.join_code}`
+								: `${selected.name} #${selected.join_code} is full`
+							: `Join ${selected.name} #${selected.join_code}`}
 				</button>
 			</div>
 

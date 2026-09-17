@@ -110,12 +110,15 @@ class GameSpectatorSerializer(serializers.ModelSerializer):
 class GameListSerializer(serializers.ModelSerializer):
 	host = PublicProfileSerializer(read_only=True)
 	player_count = serializers.IntegerField(source='players.count', read_only=True)
-	spectator_count = serializers.IntegerField(source='spectators.count', read_only=True)
+	spectator_count = serializers.SerializerMethodField()
 
 	class Meta:
 		model = Game
 		fields = ("public_id", "join_code", "name", "host", "status", "mode", "max_seats", "allow_spectators", "spectator_count", "player_count", *_MODIFIER_FIELDS, "created_at")
 		read_only_fields = fields
+
+	def get_spectator_count(self, game):
+		return spectators.spectator_count(game.pk)
 
 
 class GameDetailSerializer(GameListSerializer):
@@ -263,11 +266,4 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
 		fields = ("name", "max_participants")
 
 class LiveGameSerializer(GameListSerializer):
-	spectator_count = serializers.SerializerMethodField()
-
-	class Meta(GameListSerializer.Meta):
-		fields = GameListSerializer.Meta.fields + ("spectator_count",)
-		read_only_fields = fields
-
-	def get_spectator_count(self, game):
-		return spectators.spectator_count(game.pk)
+	pass

@@ -7,10 +7,6 @@ const RAINBOW = "rainbow-shadow"
 
 // The room while it is still filling up: seats around the table, the settings
 // panel, the spectator list, and the host's start button.
-//
-// Like GameTable, this takes everything as props and reaches for nothing on its
-// own — the actions are handed down so the page stays the only thing that knows
-// how to talk to the server.
 function Lobby({ lobby, user, connected, error, onSeat, onSpectate, onStart, onLeave }) {
 	const [copied, setCopied] = useState(false)
 
@@ -67,9 +63,6 @@ function Lobby({ lobby, user, connected, error, onSeat, onSpectate, onStart, onL
 							You're spectating. Take a free seat to join the game.
 						</p>
 					)}
-
-					{/* Chairs laid out around table.png: each is placed on a circle
-					    by its index. A free chair is a button that seats you in it. */}
 					<div className="relative mx-auto aspect-square w-full max-w-150">
 						<img
 							src={table}

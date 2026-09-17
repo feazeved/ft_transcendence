@@ -9,12 +9,14 @@ export const STATUS_LABELS = {
 	pending: "Upcoming",
 	in_progress: "In progress",
 	finished: "Finished",
+	cancelled: "Canceled",
 }
 
 export const STATUS_COLORS = {
 	pending: "text-blue",
 	in_progress: "text-green",
 	finished: "text-white/50",
+	cancelled: "text-red",
 }
 
 export function makeTournamentId(length = 4) {
@@ -176,9 +178,6 @@ export function mockTournament(id) {
 	)
 }
 
-// Turns a config's house rules into "Stacking draw cards · Zero rotate" style
-// chips. The flags sit flat on the config, so this takes the whole object —
-// exactly like enabledRuleLabels() in lib/rooms.js.
 export function enabledHouseRuleLabels(config = {}) {
 	return HOUSE_RULE_TOGGLES.filter((r) => config[r.key]).map((r) => r.label)
 }

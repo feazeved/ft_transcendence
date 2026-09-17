@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.html" %}
+{% block preheader %}Confirm your email address to finish setting up your ONE account.{% endblock preheader %}
+{% block heading %}Confirm your email{% endblock heading %}
+{% block content %}
+<p style="margin:0 0 16px;">Hi {{ user.username }},</p>
+<p style="margin:0;">Please confirm the email address for your ONE account by clicking the button below.</p>
+{% include "account/email/_action_button.html" with url=activate_url label="Confirm email" %}
+<p style="margin:0;font-size:13px;color:#6b7280;">If you didn't create a ONE account, you can safely ignore this email.</p>
+{% endblock content %}

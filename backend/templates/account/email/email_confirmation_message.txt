@@ -1,0 +1,8 @@
+{% extends "account/email/base_message.txt" %}
+{% block content %}{% autoescape off %}Hi {{ user.username }},
+
+Please confirm the email address for your ONE account by opening the link below:
+
+{{ activate_url }}
+
+If you didn't create a ONE account, you can safely ignore this email.{% endautoescape %}{% endblock content %}

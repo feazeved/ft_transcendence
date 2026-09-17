@@ -93,7 +93,9 @@ class Migration(migrations.Migration):
                 ('tournament_round', models.PositiveSmallIntegerField(blank=True, null=True)),
                 ('status', models.CharField(choices=[('pending', 'Pending'), ('in_progress', 'In progress'), ('finished', 'Finished'), ('cancelled', 'Cancelled')], default='pending', max_length=15)),
                 ('mode', models.CharField(blank=True, max_length=32)),
-                ('join_code', models.CharField(blank=True, max_length=8, null=True)),
+                ('name', models.CharField(blank=True, default='', max_length=64)),
+                ('join_code', models.CharField(db_index=True, default=game_api.models.generate_code, max_length=10, unique=True)),
+                ('allow_spectators', models.BooleanField(default=True)),
                 ('max_seats', models.PositiveSmallIntegerField(validators=[django.core.validators.MinValueValidator(2), django.core.validators.MaxValueValidator(10)])),
                 ('starting_hand_size', models.PositiveSmallIntegerField()),
                 ('turn_timer_seconds', models.PositiveIntegerField(blank=True, null=True)),
@@ -138,6 +140,19 @@ class Migration(migrations.Migration):
                 ('game', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='players', to='game_api.game')),
                 ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='game_seats', to=settings.AUTH_USER_MODEL)),
             ],
+        ),
+        migrations.CreateModel(
+            name='GameSpectator',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('joined_at', models.DateTimeField(auto_now_add=True)),
+                ('game', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='spectators', to='game_api.game')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='spectating_games', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ['joined_at'],
+                'unique_together': {('game', 'user')},
+            },
         ),
         migrations.CreateModel(
             name='Tournament',
