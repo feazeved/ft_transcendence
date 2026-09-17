@@ -3,7 +3,7 @@ import api from "@/lib/api.js"
 import { useAuth } from "@/lib/auth.jsx"
 
 const inputClass = "rounded-lg border border-white/10 bg-white/5 px-3 py-2 outline-none focus:border-white/40"
-const actionButton = "rounded-lg borderd border-white/30 px-3 py-1 text-sm transition-transform hover:scale-105 cursor-pointer disabled:opacity-40 disabled:hover:scale-100"
+const actionButton = "rounded-lg border border-white/30 px-3 py-1 text-sm transition-transform hover:scale-105 cursor-pointer disabled:opacity-40 disabled:hover:scale-100"
 
 function PersonRow({ person, children }) {
 	return (
@@ -74,7 +74,7 @@ function Friends() {
 		load()
 	}, [load])
 
-	const { friends, incoming, outgoing } = useMemo(() => {
+	const { friends, incoming, outgoing, blocked } = useMemo(() => {
 		const me = user?.public_id
 		const friends = []
 		const incoming = []
@@ -88,9 +88,9 @@ function Friends() {
 			if (row.status === "accepted") friends.push({ id: row.id, person: other})
 			else if (row.status === "pending" && iAmRequester) outgoing.push({ id: row.id, person: other})
 			else if (row.status === "pending") incoming.push({ id: row.id, person: other})
-			else if (row.status === "blocked" && iAmRequester) blocked.push({ is: row.id, person: other})
+			else if (row.status === "blocked" && iAmRequester) blocked.push({ id: row.id, person: other})
 		}
-		return { friends, incoming, outgoing }
+		return { friends, incoming, outgoing, blocked }
 	}, [rows, user?.public_id])
 
 	const act = async (id, run) => {
@@ -165,7 +165,7 @@ function Friends() {
 
 			{status === "ready" && (
 				<>
-					<FriendsSection title="Requests" const={incoming.length} empty="No pending requests.">
+					<FriendsSection title="Requests" count={incoming.length} empty="No pending requests.">
 						{incoming.map(({ id, person }) => (
 							<PersonRow key={id} person={person}>
 								<button
@@ -232,6 +232,23 @@ function Friends() {
 							</PersonRow>
 						))}
 					</FriendsSection>
+
+					{blocked.length > 0 && (
+						<FriendsSection title="Blocked" count={blocked.length} empty="">
+							{blocked.map(({ id, person }) => (
+								<PersonRow key={id} person={person}>
+									<button
+										type="button"
+										disabled={busyId === id}
+										onClick={() => act(id, () => api.delete(`/friendships/${id}/`))}
+										className={actionButton}
+									>
+										Unblock
+									</button>
+								</PersonRow>
+							))}
+						</FriendsSection>
+					)}
 				</>
 			)}
 		</section>
