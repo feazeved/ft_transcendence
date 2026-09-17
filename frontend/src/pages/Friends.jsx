@@ -79,6 +79,7 @@ function Friends() {
 		const friends = []
 		const incoming = []
 		const outgoing = []
+		const blocked = []
 
 		for (const row of rows) {
 			const iAmRequester = row.requester?.public_id === me
@@ -87,6 +88,7 @@ function Friends() {
 			if (row.status === "accepted") friends.push({ id: row.id, person: other})
 			else if (row.status === "pending" && iAmRequester) outgoing.push({ id: row.id, person: other})
 			else if (row.status === "pending") incoming.push({ id: row.id, person: other})
+			else if (row.status === "blocked" && iAmRequester) blocked.push({ is: row.id, person: other})
 		}
 		return { friends, incoming, outgoing }
 	}, [rows, user?.public_id])
@@ -200,6 +202,17 @@ function Friends() {
 									className={actionButton}
 								>
 									Remove
+								</button>
+
+								<button
+									type="button"
+									disabled={busyId === id}
+									onClick={() =>
+										act(id, () => api.post("/friendships/block/", { username: person.username }))
+									}
+									className={actionButton}
+								>
+									Block
 								</button>
 							</PersonRow>
 						))}
