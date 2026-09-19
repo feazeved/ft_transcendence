@@ -82,12 +82,18 @@ function TournamentDetail() {
 					if (!ignore) setData((current) => (current.tournament ? current : { id, tournament: null, error: err.message }))
 				})
 
+		// An action already answers with the whole fresh tournament, so a poll
+		// alongside one is not just wasted — it races it. Leave, and a poll sent
+		// a moment earlier can land after the answer and put you back in the
+		// list you just left, until the next one takes you out again.
+		if (busy) return () => {
+			ignore = true
+		}
+
 		void load()
 
-		// A finished tournament is finished: one last look and then silence. An
-		// action in flight is left alone too, so a poll sent before you pressed
-		// Leave cannot land after it and put you back in the list.
-		if (!live || busy) return () => {
+		// A finished tournament is finished: one last look, and then silence.
+		if (!live) return () => {
 			ignore = true
 		}
 
