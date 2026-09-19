@@ -69,24 +69,9 @@ migrate:
 makemigrations:
 	$(COMPOSE) exec backend python manage.py makemigrations
 
-# Every model column the database is missing. An applied migration that was
-# edited afterwards drifts silently until a query fails somewhere unrelated —
-# see docs/adr/0003-applied-migrations-are-never-edited.md.
 check-drift:
 	$(COMPOSE) exec backend python manage.py shell -c "$$CHECK_DRIFT"
 
-# A one-second disconnect grace, for the tests only.
-#
-# A player who drops out of a pending room has their seat held for
-# GAME_DISCONNECT_GRACE_SECONDS (ten, so a page refresh does not lose it) by a
-# thread that sleeps it out. The socket tests run last, so the last of those
-# threads are still sleeping when the run finishes — they wake up to a test
-# database that has just been destroyed and print a stack trace underneath the
-# result, which reads as a failure and is not one.
-#
-# Nothing in the suite asserts on how long the grace is, so one second is
-# enough: every thread has woken, done its work against a database that still
-# exists, and finished, before the run ends.
 test-api:
 	$(COMPOSE) exec -e DJANGO_GAME_DISCONNECT_GRACE_SECONDS=1 backend python manage.py test -v 3 game_api
 
