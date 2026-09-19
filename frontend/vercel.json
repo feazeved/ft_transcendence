@@ -1,11 +1,9 @@
 {
-	"rewrites": [
-		{ "source": "/api/(.*)", "destination": "https://one-wla6.onrender.com/api/$1" },
-		{ "source": "/admin/(.*)", "destination": "https://one-wla6.onrender.com/admin/$1" },
-		{ "source": "/accounts/(.*)", "destination": "https://one-wla6.onrender.com/accounts/$1" },
-		{ "source": "/ws/(.*)", "destination": "https://one-wla6.onrender.com/ws/$1" },
-		{ "source": "/media/(.*)", "destination": "https://one-wla6.onrender.com/media/$1" },
-		{ "source": "/static/(.*)", "destination": "https://one-wla6.onrender.com/static/$1" },
-		{ "source": "/(.*)", "destination": "/index.html" }
+	"redirects": [
+		{
+			"source": "/(.*)",
+			"destination": "https://one-wla6.onrender.com/$1",
+			"permanent": false
+		}
 	]
 }

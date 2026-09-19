@@ -15,6 +15,29 @@ def avatar_upload_to(instance, filename):
     ext = filename.rsplit('.', 1)[-1].lower()
     return f'avatars/{instance.public_id}.{ext}'
 
+
+class StoredFile(models.Model):
+    """An uploaded file's bytes, kept in the database.
+
+    Nothing that runs this app has a disk worth writing to: the container's
+    filesystem is thrown away on every deploy and every restart, which is how a
+    whole team's avatars disappeared at once and everybody silently fell back to
+    the default picture (docs/adr/0005-uploaded-files-live-in-the-database.md).
+    The database is the only thing here that outlives a deploy, so that is where
+    an upload goes. `game_api.storage.DatabaseStorage` is what reads and writes
+    these rows; nothing else should touch them directly.
+    """
+
+    name = models.CharField(max_length=255, unique=True)
+    content = models.BinaryField()
+    content_type = models.CharField(max_length=100, blank=True)
+    size = models.PositiveIntegerField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
 JOIN_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 JOIN_CODE_LENGTH = 4
 
