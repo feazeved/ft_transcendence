@@ -147,9 +147,6 @@ class LobbyPayloadTests(TransactionTestCase):
 
 		self.assertEqual(message["max_spectators"], 6)
 
-	# Who may press Start is decided by the server and sent, rather than worked
-	# out a second time in the browser from `host`. The two rules differ, which
-	# is exactly why one of them has to be the only one.
 	async def test_the_host_of_an_ordinary_room_may_start_it(self):
 		game, alice, _ = await sync_to_async(self._room)()
 		lobby = await _lobby_for(alice, game)
@@ -160,9 +157,6 @@ class LobbyPayloadTests(TransactionTestCase):
 		lobby = await _lobby_for(bob, game)
 		self.assertFalse(lobby["you_may_start"])
 
-	# The one this field exists for. A tournament seats its tables and picks each
-	# table's host from the draw; if only that person had a button, a round could
-	# not begin until they happened to arrive.
 	async def test_every_participant_at_a_tournament_table_may_start_it(self):
 		def build():
 			alice = User.objects.create_user(username="ana", email="ana@example.com", password="x")
@@ -184,9 +178,6 @@ class LobbyPayloadTests(TransactionTestCase):
 		lobby = await _lobby_for(alice, game)
 		self.assertIsNone(lobby["tournament"])
 
-	# The way back. A round's next tables are created the moment its last match
-	# finishes, and the tournament page is what takes people to them — so the
-	# table has to know which tournament to send them back to.
 	async def test_a_tournament_table_carries_the_code_of_its_tournament(self):
 		def build():
 			ana = User.objects.create_user(username="ana", email="ana@example.com", password="x")

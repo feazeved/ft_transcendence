@@ -101,14 +101,6 @@ export function startTournament(id) {
 	return api.post(`/tournaments/${id}/start/`, {})
 }
 
-// The table this person is expected at right now: one in the draw that has not
-// finished yet. It is what takes everybody to their game when a round starts —
-// whoever pressed the button from the answer to it, everyone else from the next
-// poll — and what puts the "Your table" link on the round panel.
-//
-// Pure, and read from `rounds` rather than kept as a flag, for the same reason
-// `isEntered` is: a second copy of where you are playing is a second thing that
-// can disagree with the draw on screen.
 export function liveMatchId(tournament, publicId) {
 	if (!publicId) return null
 

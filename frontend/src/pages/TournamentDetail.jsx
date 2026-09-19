@@ -18,13 +18,6 @@ import {
 import { computeStructure } from "@/lib/tournamentStructure.js"
 import { useAuth } from "@/lib/auth.jsx"
 
-// How often a tournament that is still going asks for itself again.
-//
-// A tournament changes because of what *other people* do — somebody signs up,
-// the host starts the round — and unlike a room it has no socket of its own, so
-// the only way those reach this page is for the page to ask. Three seconds is
-// short enough that the roster looks live and slow enough to stay one small
-// request; the asking stops the moment the tournament is over.
 const POLL_MS = 3000
 
 // One tournament. The page holds the tournament itself and whether a button is
@@ -50,17 +43,9 @@ function TournamentDetail() {
 	const tournament = fresh ? data.tournament : null
 	const loadError = fresh ? data.error : ""
 
-	// Still worth asking about. Unknown counts as live: the first load has to
-	// happen before there is a status to read.
 	const live = !tournament || tournament.status === "pending" || tournament.status === "in_progress"
 
-	// The table I am expected at right now, or null. Derived, not stored, so it
-	// cannot disagree with the draw drawn from the same `rounds` below.
 	const myMatchId = liveMatchId(tournament, user?.public_id)
-	// Which table this page has already sent me to. A ref, because being sent
-	// somewhere must not cause a render — and because the point of remembering it
-	// is to send me once: if I walk back here from my own table on purpose, the
-	// page lets me stay.
 	const sentTo = useRef(null)
 
 	useEffect(() => {
@@ -76,23 +61,15 @@ function TournamentDetail() {
 					if (!ignore) setData({ id, tournament, error: "" })
 				})
 				.catch((err) => {
-					// A poll that fails is not worth taking the page away for: keep
-					// what is on screen and let the next one through. Only a first
-					// load with nothing to show says so out loud.
 					if (!ignore) setData((current) => (current.tournament ? current : { id, tournament: null, error: err.message }))
 				})
 
-		// An action already answers with the whole fresh tournament, so a poll
-		// alongside one is not just wasted — it races it. Leave, and a poll sent
-		// a moment earlier can land after the answer and put you back in the
-		// list you just left, until the next one takes you out again.
 		if (busy) return () => {
 			ignore = true
 		}
 
 		void load()
 
-		// A finished tournament is finished: one last look, and then silence.
 		if (!live) return () => {
 			ignore = true
 		}
@@ -105,10 +82,6 @@ function TournamentDetail() {
 		}
 	}, [id, live, busy])
 
-	// When the round starts, everybody goes to their table. Whoever pressed the
-	// button gets the new draw in the answer to it and everyone else gets it from
-	// the next poll — but both arrive as a new `rounds`, so there is one place
-	// that navigates and both take it.
 	useEffect(() => {
 		if (!myMatchId || sentTo.current === myMatchId) return
 		sentTo.current = myMatchId

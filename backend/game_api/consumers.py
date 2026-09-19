@@ -460,9 +460,6 @@ class GameConsumer(WebsocketConsumer):
 		self.send(text_data=json.dumps({"type": "error", "message": message}))
 
 	def _personalized_state(self):
-		# `tournament` is joined rather than fetched later: this runs on every
-		# broadcast, to every player, and a lazy `game.tournament` here would be
-		# one extra query per person per move.
 		game = Game.objects.select_related("host", "winner", "tournament").get(pk=self.game_id)
 		player = GamePlayer.objects.filter(game=game, user=self.user).first()
 		is_spectator = player is None
@@ -533,24 +530,11 @@ class GameConsumer(WebsocketConsumer):
 				"your_seat": player.seat if player else None,
 				"you_are_spectating": is_spectator,
 				"is_spectator": is_spectator,
-				# The server's own rule for who may press Start, sent rather than
-				# re-derived: `GameViewSet.start` lets the host start an ordinary
-				# room and *any participant* start a tournament match, because a
-				# table whose randomly chosen host is slow to arrive must not
-				# stall the whole round. The lobby was reading `host` and drawing
-				# the button for one person, so at a tournament table nobody else
-				# had one — the round could not begin. Two places deciding the
-				# same thing is how they come to disagree, so there is one.
 				"you_may_start": (
 					player is not None
 					if game.tournament_id is not None
 					else game.host_id == self.user.pk
 				),
-				# The tournament this table belongs to, by the code its page is
-				# addressed with — or null for an ordinary room. It is what the
-				# room needs to offer the way back when the match is over: the
-				# next round's tables are created the moment the last one
-				# finishes, and the tournament page is what takes people to them.
 				"tournament": game.tournament.join_code if game.tournament_id else None,
 			}
 

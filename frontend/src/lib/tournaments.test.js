@@ -138,8 +138,6 @@ describe("STATUS_LABELS", () => {
 })
 
 describe("liveMatchId", () => {
-	// The shape the detail page actually receives: rounds, each with its tables,
-	// each table with the players seated at it.
 	const draw = (matches) => ({ rounds: [{ round: 1, matches }] })
 	const table = (publicId, status, ...publicIds) => ({
 		public_id: publicId,
@@ -160,8 +158,6 @@ describe("liveMatchId", () => {
 		expect(liveMatchId(rounds, "me")).toBe("g2")
 	})
 
-	// The one that keeps the page from sending somebody back to a game they have
-	// already finished.
 	it("ignores a table that is over", () => {
 		expect(liveMatchId(draw([table("g1", "finished", "me", "ana")]), "me")).toBeNull()
 	})
