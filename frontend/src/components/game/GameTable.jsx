@@ -29,6 +29,11 @@ const NOTICE_MS = 3200
 //   It has to live here because Hand, OpponentArc and ActionBar all read it.
 // - `notices`: what just happened, worked out by comparing the last state with the
 //   new one, since the server sends no events.
+//
+// `error` is the room's last refused move — `{ text, at }`, not a string. It is
+// drawn like a notice and expires like one, on the same clock, because a warning
+// about a card that could not be played has no business sitting on the table for
+// the rest of the game.
 // - `arenaHeight`: measured, not guessed. Under COMPACT_HEIGHT the table switches
 //   to its compact set, and under TIGHT_HEIGHT the seats also clear the middle
 //   column, which is where the pile has had to move.
@@ -113,6 +118,9 @@ function GameTable({ game, send, error, onRematch, rematchBusy }) {
 
 	const others = me ? seatOrder(game).slice(1) : game.players
 	const visibleNotices = notices.filter((notice) => now - notice.at < NOTICE_MS)
+	// The refusal keeps the notices' lifetime, off the same ticking clock: there
+	// is still no second timer to start, clear or leak.
+	const errorText = error && now - error.at < NOTICE_MS ? error.text : ""
 
 	const status = isOver
 		? "Game over."
@@ -196,7 +204,7 @@ function GameTable({ game, send, error, onRematch, rematchBusy }) {
 				</div>
 			)}
 
-			{error && <ErrorMessage boxed className="self-center">{error}</ErrorMessage>}
+			{errorText && <ErrorMessage boxed className="self-center">{errorText}</ErrorMessage>}
 
 			{me ? (
 				<Hand
