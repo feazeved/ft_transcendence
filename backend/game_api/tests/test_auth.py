@@ -117,6 +117,7 @@ class OAuthRoutingTests(TestCase):
 		self.assertIn('api.intra.42.fr', response.url)
 
 
+@override_settings(RUN_TASKS_IN_BACKGROUND=False)
 class EmailTests(TestCase):
 	def test_password_reset_email_links_to_the_frontend(self):
 		User.objects.create_user(username='alice', email='alice@example.com', password='x')

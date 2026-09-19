@@ -69,14 +69,11 @@ migrate:
 makemigrations:
 	$(COMPOSE) exec backend python manage.py makemigrations
 
-# Every model column the database is missing. An applied migration that was
-# edited afterwards drifts silently until a query fails somewhere unrelated —
-# see docs/adr/0003-applied-migrations-are-never-edited.md.
 check-drift:
 	$(COMPOSE) exec backend python manage.py shell -c "$$CHECK_DRIFT"
 
 test-api:
-	$(COMPOSE) exec backend python manage.py test -v 3 game_api
+	$(COMPOSE) exec -e DJANGO_GAME_DISCONNECT_GRACE_SECONDS=1 backend python manage.py test -v 3 game_api
 
 test-engine:
 	$(COMPOSE) exec backend pytest -vvv game_engine/tests
