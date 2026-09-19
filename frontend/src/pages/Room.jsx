@@ -37,6 +37,7 @@ function Room() {
 	// chat needs the code: an invite message is tagged with it.
 	const [joinCode, setJoinCode] = useState(null)
 	const [error, setError] = useState("")
+	const [tableError, setTableError] = useState(null) // { text, at }
 	// The table's chat, kept here because this is the file that owns the socket it
 	// rides on. It is not the dock's: those messages come down `ws/chat/`.
 	const [tableMessages, setTableMessages] = useState([])
@@ -114,7 +115,7 @@ function Room() {
 				return
 			setGame(data)
 		} else if (data.type === "error") {
-			setError(data.message)
+			setTableError({ text: data.message, at: Date.now() })
 		}
 	}, [])
 
@@ -207,7 +208,7 @@ function Room() {
 					<GameTable
 						game={game}
 						send={send}
-						error={error}
+						error={tableError}
 						onRematch={backToRoom}
 						rematchBusy={rematchBusy}
 					/>
