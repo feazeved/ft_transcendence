@@ -14,6 +14,9 @@ const Leaderboard = lazy(() => import('@/pages/Leaderboard.jsx'))
 const Login = lazy(() => import('@/pages/Login.jsx'))
 const Friends = lazy(() => import('@/pages/Friends.jsx'))
 const Register = lazy(() => import('@/pages/Register.jsx'))
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword.jsx'))
+const ResetPassword = lazy(() => import('@/pages/ResetPassword.jsx'))
+const ConfirmEmail = lazy(() => import('@/pages/ConfirmEmail.jsx'))
 const OAuthCallback = lazy(() => import('@/pages/OAuthCallback.jsx'))
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy.jsx'))
 const TermsOfService = lazy(() => import('@/pages/TermsOfService.jsx'))
@@ -43,6 +46,16 @@ function AppRoutes() {
 					<Route path="/rules" element={<Navigate to="/#howtoplay" replace />} />
 					<Route path="/login" element={<Login />} />
 					<Route path="/register" element={<Register />} />
+					{/* Where the e-mails the backend sends actually land. The link is
+					    written in game_api/adapters.py and game_api/serializers.py, and
+					    a shape that has no route here is a 404 at the end of a mail
+					    nobody can do anything about. Reset comes in two shapes, one
+					    segment or two, because allauth and dj-rest-auth each write their
+					    own — see lib/passwordReset.js. */}
+					<Route path="/forgot-password" element={<ForgotPassword />} />
+					<Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+					<Route path="/reset-password/:key" element={<ResetPassword />} />
+					<Route path="/confirm-email/:key" element={<ConfirmEmail />} />
 					{/* Signed out, these bounce to the Login and come back after it. */}
 					<Route path="/friends" element={<RequireAuth><Friends /></RequireAuth>} />
 					<Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />

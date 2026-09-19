@@ -55,7 +55,44 @@ export function openSocket(path, { onMessage, onOpen, onClose } = {}) {
 		socket.onerror = () => socket.close()
 	}
 
+	const shutdown = () => {
+		closedByUs = true
+		clearTimeout(retryTimer)
+		window.removeEventListener("pagehide", onPageHide)
+
+		// Closing a handshake that is still in flight is what logs "WebSocket is
+		// closed before the connection is established" (Firefox: "was interrupted
+		// while the page was loading") — two of them on every reload, because
+		// StrictMode mounts each effect twice in development. It is not only
+		// noise: the server decides on its own whether that half-open connection
+		// ever counted, and a connect without its disconnect is what leaves the
+		// presence and spectator counters drifting upward. So let it finish
+		// opening and close it properly.
+		if (socket?.readyState === WebSocket.CONNECTING) {
+			const pending = socket
+			pending.addEventListener("open", () => pending.close(), { once: true })
+			return
+		}
+		socket?.close()
+	}
+
+	// A reload tears the socket down whenever the browser gets round to it, and
+	// the server can see that disconnect *after* the new page's connect. At the
+	// game table that costs a seat: `disconnect` writes is_connected=False over
+	// the True the new connection just wrote, and the grace timer takes the seat
+	// ten seconds later from somebody who only pressed F5. Closing here puts the
+	// disconnect first, while the old page is still the only one there.
+	//
+	// `persisted` means the page is going into the back/forward cache and will
+	// come back as it was — the socket should survive with it, and if the browser
+	// closes it anyway the retry above brings it back.
+	function onPageHide(event) {
+		if (event.persisted) return
+		shutdown()
+	}
+
 	connect()
+	window.addEventListener("pagehide", onPageHide)
 
 	return {
 		send(payload) {
@@ -65,11 +102,7 @@ export function openSocket(path, { onMessage, onOpen, onClose } = {}) {
 			}
 			return false
 		},
-		close() {
-			closedByUs = true
-			clearTimeout(retryTimer)
-			socket?.close()
-		},
+		close: shutdown,
 	}
 }
 
