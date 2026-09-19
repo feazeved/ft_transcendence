@@ -86,6 +86,12 @@ function Login() {
 				{error && <ErrorMessage boxed>{error}</ErrorMessage>}
 			</form>
 
+			<p className="text-center text-[15px] text-white/70">
+				<Link to="/forgot-password" className="font-bold text-yellow hover:text-white">
+					Forgot your password?
+				</Link>
+			</p>
+
 			<OAuthButtons page="login" disabled={busy} oauth={oauth} onStart={startOAuth} />
 
 			<p className="text-center text-[15px] text-white/70">
