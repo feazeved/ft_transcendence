@@ -117,6 +117,18 @@ class OAuthRoutingTests(TestCase):
 		self.assertIn('api.intra.42.fr', response.url)
 
 
+# `AccountAdapter.send_mail` renders the message and then hands the send to a
+# thread (`run_in_background`), so that a signup does not wait on an SMTP
+# round-trip. Background work is on in the tests too, deliberately — which left
+# these three racing it: they assert on `mail.outbox` the moment the response
+# comes back, and nothing says the thread has run by then. On a loaded machine
+# it loses, and the failure is either `0 != 1` or, worse, the previous test's
+# email arriving late and being read as this one's.
+#
+# What these tests are about is the *link in the email* — that a reset points at
+# the frontend and not at Django's own view. Which thread posts it is not part of
+# that, so the send happens inline here and the assertion has something to read.
+@override_settings(RUN_TASKS_IN_BACKGROUND=False)
 class EmailTests(TestCase):
 	def test_password_reset_email_links_to_the_frontend(self):
 		User.objects.create_user(username='alice', email='alice@example.com', password='x')
