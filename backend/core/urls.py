@@ -19,8 +19,7 @@ import re
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path, re_path
-from django.views.static import serve
-from game_api.views import csrf, healthz
+from game_api.views import csrf, healthz, media_file, spa_index
 
 urlpatterns = [
 	path('admin/', admin.site.urls),
@@ -32,14 +31,27 @@ urlpatterns = [
 	path('accounts/', include('allauth.urls')),
 ]
 
-# Not gated on DEBUG: locally nginx serves /media/ from the shared volume and
-# never reaches this, but Render runs this container standalone with nothing
-# else in front of it, so Django has to be the one serving uploaded avatars.
-# static() can't be used for this — it silently returns no routes when DEBUG=False.
+# Uploaded files are rows, not files, so this is the only thing that can serve
+# them — nginx has no directory to alias any more, in any environment
+# (docs/adr/0005-uploaded-files-live-in-the-database.md). Not gated on DEBUG:
+# django.conf.urls.static.static() silently returns no routes when DEBUG=False,
+# which is how this would come back as a 404 nobody can explain in production.
 urlpatterns += [
 	re_path(
 		rf'^{re.escape(settings.MEDIA_URL.lstrip("/"))}(?P<path>.*)$',
-		serve,
-		{'document_root': settings.MEDIA_ROOT},
+		media_file,
 	),
 ]
+
+# The single-page app, where this process is the one serving it (Render: one
+# origin, because nothing in front of Django can proxy a WebSocket upgrade —
+# docs/adr/0004-one-origin-in-production.md). WhiteNoise has already answered
+# anything with a real file behind it, so whatever reaches here is a client-side
+# route and gets index.html.
+#
+# The API and the server's own routes are excluded on purpose: a mistyped
+# endpoint must still 404, not come back as a 200 page that no caller can parse.
+if settings.FRONTEND_DIST:
+	urlpatterns += [
+		re_path(r'^(?!api/|admin/|accounts/|media/|static/|healthz/).*$', spa_index),
+	]

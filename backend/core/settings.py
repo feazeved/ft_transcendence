@@ -179,9 +179,11 @@ CSRF_COOKIE_SECURE = not DEBUG
 CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Vercel's rewrites proxy to this backend as a plain external request, so the
-# Host header it sends is Render's own domain, not the public one visitors
-# see. Without this, request.build_absolute_uri() points at Render instead of Vercel
+# The deployment sits behind Render's router, which passes the host the visitor
+# typed in X-Forwarded-Host. Trusting it is what keeps request.build_absolute_uri()
+# right, and that is what allauth builds OAuth callback URLs from and what avatar
+# URLs are made absolute against. Only safe because nothing reaches this process
+# except through that router.
 USE_X_FORWARDED_HOST = True
 
 # Password validation
@@ -235,7 +237,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # picture) raises InvalidStorageError.
 STORAGES = {
 	'default': {
-		'BACKEND': 'django.core.files.storage.FileSystemStorage',
+		# Uploads go in the database. Nothing that runs this app has a disk that
+		# outlives a deploy, and a file written to one disappears without an
+		# error (game_api/storage.py,
+		# docs/adr/0005-uploaded-files-live-in-the-database.md).
+		'BACKEND': 'game_api.storage.DatabaseStorage',
 	},
 	'staticfiles': {
 		'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
@@ -246,7 +252,33 @@ STORAGES = {
 # https://docs.djangoproject.com/en/6.1/topics/files/
 
 MEDIA_URL = 'media/'
+# Uploads are in the database, so nothing writes here any more. It is left for
+# the one thing that still reads it: `manage.py import_media_to_db`, which walks
+# this directory once to bring files saved before the move across.
 MEDIA_ROOT = env('DJANGO_MEDIA_ROOT', default=str(BASE_DIR / 'media'))
+
+
+# The built single-page app
+# Set only where this process is also the web server — the deployed site, where
+# the page, /api, /media and /ws all have to answer on one origin, because a
+# static host in front of Django cannot carry a WebSocket upgrade through
+# (docs/adr/0004-one-origin-in-production.md). Unset locally: `make up` gives the
+# app to the Vite dev server and nginx serves the built files in prod compose.
+
+FRONTEND_DIST = env('DJANGO_FRONTEND_DIST', default='')
+
+if FRONTEND_DIST:
+	# Serves dist/ at the site root, so /assets/index-COJ6jVha.js resolves to a
+	# file. A URL with no file behind it falls through to Django, where the
+	# catch-all in core/urls.py answers with index.html and the router takes over.
+	WHITENOISE_ROOT = FRONTEND_DIST
+
+	# Vite and collectstatic both put a content hash in the filename, so a changed
+	# file arrives under a new name and the old name can be cached for ever — what
+	# nginx does with /assets/ in docker/nginx/nginx.prod.conf. Setting this
+	# *replaces* WhiteNoise's own test, which only recognises collectstatic's
+	# `base.31652d68a9de.css` under /static/, so both forms are spelled out here.
+	WHITENOISE_IMMUTABLE_FILE_TEST = r'^/(assets/.*-|static/.*\.)[\w-]{8,}\.\w+$'
 
 
 # Background work

@@ -1,7 +1,9 @@
 import uuid
+from io import BytesIO
+from pathlib import Path
 from django.conf import settings as django_settings
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.http import JsonResponse, Http404
+from django.http import FileResponse, JsonResponse, Http404
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models import Q, Count, Max, F, FloatField, Value
 from django.db.models.functions import Cast, Coalesce, NullIf
@@ -20,7 +22,7 @@ from game_engine import start_game as engine_start_game
 from game_engine import state_to_dict
 
 from . import spectators
-from .models import Friendship, FriendshipStatus, User, Game, GamePlayer, GameSpectator, GameStatus, Conversation, Tournament, TournamentParticipant, MODIFIER_FIELDS, generate_code
+from .models import Friendship, FriendshipStatus, StoredFile, User, Game, GamePlayer, GameSpectator, GameStatus, Conversation, Tournament, TournamentParticipant, MODIFIER_FIELDS, generate_code
 from .serializers import (
 	FriendshipSerializer, FriendshipTargetSerializer, PublicProfileSerializer, GameCreateSerializer, GameDetailSerializer, GameListSerializer,
 	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer, ChatMessageSerializer, ConversationSerializer,
@@ -40,6 +42,42 @@ def healthz(request):
 	except Exception:
 		return JsonResponse({'status': 'error'}, status=503)
 	return JsonResponse({'status': 'ok'})
+
+
+def media_file(request, path):
+	"""An uploaded file, out of the database.
+
+	What `django.views.static.serve` did for MEDIA_ROOT, for files that are no
+	longer on a disk (game_api/storage.py).
+	"""
+	stored = get_object_or_404(StoredFile, name=path)
+	response = FileResponse(
+		# psycopg2 hands bytea back as a memoryview; sqlite hands back bytes.
+		BytesIO(bytes(stored.content)),
+		content_type=stored.content_type or 'application/octet-stream',
+	)
+	response['Content-Length'] = stored.size
+	# A day, not a year: a name is only taken once while its row exists, so it
+	# could in principle come back meaning something else, and a year-long cache
+	# of the wrong face is not a thing anybody can clear.
+	response['Cache-Control'] = 'public, max-age=86400'
+	return response
+
+
+def spa_index(request):
+	"""The built index.html, for every client-side route.
+
+	The app is one document and the router decides which screen it draws, so
+	/friends, /profile/42 and a room code all get the same file back. Only
+	reachable where the app is served from here (settings.FRONTEND_DIST) —
+	core/urls.py leaves the route out otherwise.
+	"""
+	index = Path(django_settings.FRONTEND_DIST) / 'index.html'
+	response = FileResponse(index.open('rb'), content_type='text/html; charset=utf-8')
+	# The filenames this document points at carry a hash and are cached for ever,
+	# so this is the one file a deploy has to be able to replace.
+	response['Cache-Control'] = 'no-cache'
+	return response
 
 class PublicProfileView(generics.RetrieveAPIView):
 	queryset = User.objects.all()
