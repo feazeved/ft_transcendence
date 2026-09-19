@@ -5,7 +5,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.test import TransactionTestCase, override_settings
 
 from core.asgi import application
-from ..models import Game, GamePlayer, GameSpectator, GameStatus
+from ..models import Game, GamePlayer, GameSpectator, GameStatus, Tournament, TournamentParticipant
 
 User = get_user_model()
 
@@ -146,3 +146,35 @@ class LobbyPayloadTests(TransactionTestCase):
 		message = await _lobby_for(alice, game)
 
 		self.assertEqual(message["max_spectators"], 6)
+
+	# Who may press Start is decided by the server and sent, rather than worked
+	# out a second time in the browser from `host`. The two rules differ, which
+	# is exactly why one of them has to be the only one.
+	async def test_the_host_of_an_ordinary_room_may_start_it(self):
+		game, alice, _ = await sync_to_async(self._room)()
+		lobby = await _lobby_for(alice, game)
+		self.assertTrue(lobby["you_may_start"])
+
+	async def test_a_guest_in_an_ordinary_room_may_not(self):
+		game, _, bob = await sync_to_async(self._room)()
+		lobby = await _lobby_for(bob, game)
+		self.assertFalse(lobby["you_may_start"])
+
+	# The one this field exists for. A tournament seats its tables and picks each
+	# table's host from the draw; if only that person had a button, a round could
+	# not begin until they happened to arrive.
+	async def test_every_participant_at_a_tournament_table_may_start_it(self):
+		def build():
+			alice = User.objects.create_user(username="ana", email="ana@example.com", password="x")
+			bob = User.objects.create_user(username="bea", email="bea@example.com", password="x")
+			tournament = Tournament.objects.create(name="Cup", created_by=alice, max_participants=2)
+			TournamentParticipant.objects.create(tournament=tournament, user=alice)
+			TournamentParticipant.objects.create(tournament=tournament, user=bob)
+			tournament.start()
+			match = Game.objects.get(tournament=tournament, tournament_round=1)
+			non_host = bob if match.host_id == alice.pk else alice
+			return match, non_host
+
+		match, non_host = await sync_to_async(build)()
+		lobby = await _lobby_for(non_host, match)
+		self.assertTrue(lobby["you_may_start"])

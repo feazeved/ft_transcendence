@@ -530,6 +530,19 @@ class GameConsumer(WebsocketConsumer):
 				"your_seat": player.seat if player else None,
 				"you_are_spectating": is_spectator,
 				"is_spectator": is_spectator,
+				# The server's own rule for who may press Start, sent rather than
+				# re-derived: `GameViewSet.start` lets the host start an ordinary
+				# room and *any participant* start a tournament match, because a
+				# table whose randomly chosen host is slow to arrive must not
+				# stall the whole round. The lobby was reading `host` and drawing
+				# the button for one person, so at a tournament table nobody else
+				# had one — the round could not begin. Two places deciding the
+				# same thing is how they come to disagree, so there is one.
+				"you_may_start": (
+					player is not None
+					if game.tournament_id is not None
+					else game.host_id == self.user.pk
+				),
 			}
 
 		if game.state is None:

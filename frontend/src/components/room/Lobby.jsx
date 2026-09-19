@@ -10,13 +10,16 @@ const LEAVE =
 // The room while it is still filling up. Like GameTable, this file only puts the
 // sections in order; the markup lives in the sections.
 //
-// Start game is the host's alone, and a game needs two players in seats — the
-// server would refuse anyway, but a button that can't work shouldn't look like it
-// can.
+// Who may press Start is the server's answer, not one worked out again here:
+// `you_may_start` is the same rule `GameViewSet.start` enforces. It is the host
+// in an ordinary room and *any participant* at a tournament table, where the
+// host is whoever the draw happened to seat first and may not even have arrived
+// yet. A game still needs two players in seats — the server would refuse anyway,
+// but a button that cannot work should not look like it can.
 function Lobby({ lobby, user, connected, error, onSeat, onSpectate, onStart, onLeave }) {
 	const seats = Array.isArray(lobby.seats) ? lobby.seats : []
 	const seated = seats.filter(Boolean).length
-	const isHost = lobby.host === user?.username
+	const mayStart = lobby.you_may_start ?? lobby.host === user?.username
 
 	return (
 		<div className="mx-auto flex w-full max-w-[1240px] flex-col gap-[26px] px-[clamp(16px,4vw,24px)] pb-[clamp(48px,8vw,88px)] pt-[clamp(28px,6vw,56px)] text-white">
@@ -49,7 +52,7 @@ function Lobby({ lobby, user, connected, error, onSeat, onSpectate, onStart, onL
 				<button type="button" onClick={onLeave} className={LEAVE}>
 					Leave room
 				</button>
-				{isHost && (
+				{mayStart && (
 					<Button color="green" onClick={onStart} disabled={seated < 2}>
 						Start game
 					</Button>
