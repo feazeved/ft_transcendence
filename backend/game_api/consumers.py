@@ -460,7 +460,7 @@ class GameConsumer(WebsocketConsumer):
 		self.send(text_data=json.dumps({"type": "error", "message": message}))
 
 	def _personalized_state(self):
-		game = Game.objects.select_related("host", "winner").get(pk=self.game_id)
+		game = Game.objects.select_related("host", "winner", "tournament").get(pk=self.game_id)
 		player = GamePlayer.objects.filter(game=game, user=self.user).first()
 		is_spectator = player is None
 
@@ -530,6 +530,12 @@ class GameConsumer(WebsocketConsumer):
 				"your_seat": player.seat if player else None,
 				"you_are_spectating": is_spectator,
 				"is_spectator": is_spectator,
+				"you_may_start": (
+					player is not None
+					if game.tournament_id is not None
+					else game.host_id == self.user.pk
+				),
+				"tournament": game.tournament.join_code if game.tournament_id else None,
 			}
 
 		if game.state is None:
@@ -600,6 +606,9 @@ class GameConsumer(WebsocketConsumer):
 			# missing key and `false` have to mean the same thing to the client.
 			"settings": {name: getattr(game, name) for name in MODIFIER_FIELDS},
 			"players": players,
+			# As in the lobby above: the way back to the round this table is part
+			# of, or null for an ordinary room.
+			"tournament": game.tournament.join_code if game.tournament_id else None,
 		}
 
 	def _expire_overdue_turn(self, game):

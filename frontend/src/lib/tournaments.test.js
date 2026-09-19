@@ -8,6 +8,7 @@ import {
 	joinTournament,
 	leaveTournament,
 	listTournaments,
+	liveMatchId,
 	startTournament,
 	STATUS_ACCENTS,
 	STATUS_COLORS,
@@ -133,5 +134,38 @@ describe("STATUS_LABELS", () => {
 		expect(Object.keys(STATUS_LABELS).sort()).toEqual(
 			["cancelled", "finished", "in_progress", "pending"].sort(),
 		)
+	})
+})
+
+describe("liveMatchId", () => {
+	const draw = (matches) => ({ rounds: [{ round: 1, matches }] })
+	const table = (publicId, status, ...publicIds) => ({
+		public_id: publicId,
+		status,
+		players: publicIds.map((id) => ({ id, user: { public_id: id } })),
+	})
+
+	it("finds the table I am waiting at", () => {
+		expect(liveMatchId(draw([table("g1", "pending", "me", "ana")]), "me")).toBe("g1")
+	})
+
+	it("finds the table I am playing at", () => {
+		expect(liveMatchId(draw([table("g1", "in_progress", "me", "ana")]), "me")).toBe("g1")
+	})
+
+	it("skips the tables I am not at", () => {
+		const rounds = draw([table("g1", "pending", "ana", "pedro"), table("g2", "pending", "me", "lucas")])
+		expect(liveMatchId(rounds, "me")).toBe("g2")
+	})
+
+	it("ignores a table that is over", () => {
+		expect(liveMatchId(draw([table("g1", "finished", "me", "ana")]), "me")).toBeNull()
+	})
+
+	it("is null before there is a draw, and for a guest", () => {
+		expect(liveMatchId({ rounds: [] }, "me")).toBeNull()
+		expect(liveMatchId(draw([table("g1", "pending", "me")]), undefined)).toBeNull()
+		expect(liveMatchId(null, "me")).toBeNull()
+		expect(liveMatchId({}, "me")).toBeNull()
 	})
 })

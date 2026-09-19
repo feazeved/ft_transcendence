@@ -5,7 +5,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.test import TransactionTestCase, override_settings
 
 from core.asgi import application
-from ..models import Game, GamePlayer, GameSpectator, GameStatus
+from ..models import Game, GamePlayer, GameSpectator, GameStatus, Tournament, TournamentParticipant
 
 User = get_user_model()
 
@@ -146,3 +146,48 @@ class LobbyPayloadTests(TransactionTestCase):
 		message = await _lobby_for(alice, game)
 
 		self.assertEqual(message["max_spectators"], 6)
+
+	async def test_the_host_of_an_ordinary_room_may_start_it(self):
+		game, alice, _ = await sync_to_async(self._room)()
+		lobby = await _lobby_for(alice, game)
+		self.assertTrue(lobby["you_may_start"])
+
+	async def test_a_guest_in_an_ordinary_room_may_not(self):
+		game, _, bob = await sync_to_async(self._room)()
+		lobby = await _lobby_for(bob, game)
+		self.assertFalse(lobby["you_may_start"])
+
+	async def test_every_participant_at_a_tournament_table_may_start_it(self):
+		def build():
+			alice = User.objects.create_user(username="ana", email="ana@example.com", password="x")
+			bob = User.objects.create_user(username="bea", email="bea@example.com", password="x")
+			tournament = Tournament.objects.create(name="Cup", created_by=alice, max_participants=2)
+			TournamentParticipant.objects.create(tournament=tournament, user=alice)
+			TournamentParticipant.objects.create(tournament=tournament, user=bob)
+			tournament.start()
+			match = Game.objects.get(tournament=tournament, tournament_round=1)
+			non_host = bob if match.host_id == alice.pk else alice
+			return match, non_host
+
+		match, non_host = await sync_to_async(build)()
+		lobby = await _lobby_for(non_host, match)
+		self.assertTrue(lobby["you_may_start"])
+
+	async def test_an_ordinary_room_belongs_to_no_tournament(self):
+		game, alice, _ = await sync_to_async(self._room)()
+		lobby = await _lobby_for(alice, game)
+		self.assertIsNone(lobby["tournament"])
+
+	async def test_a_tournament_table_carries_the_code_of_its_tournament(self):
+		def build():
+			ana = User.objects.create_user(username="ana", email="ana@example.com", password="x")
+			bea = User.objects.create_user(username="bea", email="bea@example.com", password="x")
+			tournament = Tournament.objects.create(name="Cup", created_by=ana, max_participants=2)
+			TournamentParticipant.objects.create(tournament=tournament, user=ana)
+			TournamentParticipant.objects.create(tournament=tournament, user=bea)
+			tournament.start()
+			return Game.objects.get(tournament=tournament, tournament_round=1), ana, tournament
+
+		match, ana, tournament = await sync_to_async(build)()
+		lobby = await _lobby_for(ana, match)
+		self.assertEqual(lobby["tournament"], tournament.join_code)

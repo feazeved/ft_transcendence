@@ -100,3 +100,16 @@ export function leaveTournament(id) {
 export function startTournament(id) {
 	return api.post(`/tournaments/${id}/start/`, {})
 }
+
+export function liveMatchId(tournament, publicId) {
+	if (!publicId) return null
+
+	for (const round of tournament?.rounds ?? []) {
+		for (const match of round.matches) {
+			if (match.status !== "pending" && match.status !== "in_progress") continue
+			if (match.players.some((player) => player.user?.public_id === publicId)) return match.public_id
+		}
+	}
+
+	return null
+}

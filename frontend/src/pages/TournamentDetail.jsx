@@ -1,15 +1,24 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import FinalResults from "@/components/tournament/FinalResults.jsx"
 import ParticipantChips from "@/components/tournament/ParticipantChips.jsx"
+import RoundsPanel from "@/components/tournament/RoundsPanel.jsx"
 import StructurePanel from "@/components/tournament/StructurePanel.jsx"
 import TournamentActions from "@/components/tournament/TournamentActions.jsx"
 import TournamentHeader from "@/components/tournament/TournamentHeader.jsx"
 import TournamentSettingsPanel from "@/components/tournament/TournamentSettingsPanel.jsx"
 import { ErrorMessage, Loading } from "@/components/ui/Message.jsx"
-import { getTournament, joinTournament, leaveTournament, startTournament } from "@/lib/tournaments.js"
+import {
+	getTournament,
+	joinTournament,
+	leaveTournament,
+	liveMatchId,
+	startTournament,
+} from "@/lib/tournaments.js"
 import { computeStructure } from "@/lib/tournamentStructure.js"
 import { useAuth } from "@/lib/auth.jsx"
+
+const POLL_MS = 3000
 
 // One tournament. The page holds the tournament itself and whether a button is
 // mid-flight; every section draws from that one object.
@@ -30,24 +39,54 @@ function TournamentDetail() {
 	const [actionError, setActionError] = useState("")
 	const [busy, setBusy] = useState(false)
 
+	const fresh = data.id === id
+	const tournament = fresh ? data.tournament : null
+	const loadError = fresh ? data.error : ""
+
+	const live = !tournament || tournament.status === "pending" || tournament.status === "in_progress"
+
+	const myMatchId = liveMatchId(tournament, user?.public_id)
+	const sentTo = useRef(null)
+
 	useEffect(() => {
 		// `ignore` is the same guard the Leaderboard uses: StrictMode mounts the
 		// effect twice in development, so a late answer has to check it still
-		// matters.
+		// matters. It also covers a route change — one tournament's answer must
+		// not land under another one's name.
 		let ignore = false
 
-		getTournament(id)
-			.then((tournament) => {
-				if (!ignore) setData({ id, tournament, error: "" })
-			})
-			.catch((err) => {
-				if (!ignore) setData({ id, tournament: null, error: err.message })
-			})
+		const load = () =>
+			getTournament(id)
+				.then((tournament) => {
+					if (!ignore) setData({ id, tournament, error: "" })
+				})
+				.catch((err) => {
+					if (!ignore) setData((current) => (current.tournament ? current : { id, tournament: null, error: err.message }))
+				})
+
+		if (busy) return () => {
+			ignore = true
+		}
+
+		void load()
+
+		if (!live) return () => {
+			ignore = true
+		}
+
+		const timer = setInterval(load, POLL_MS)
 
 		return () => {
 			ignore = true
+			clearInterval(timer)
 		}
-	}, [id])
+	}, [id, live, busy])
+
+	useEffect(() => {
+		if (!myMatchId || sentTo.current === myMatchId) return
+		sentTo.current = myMatchId
+		navigate(`/room/${myMatchId}`)
+	}, [myMatchId, navigate])
 
 	// Every button follows the same shape: lock, run, take the answer, unlock.
 	const act = async (run) => {
@@ -69,10 +108,6 @@ function TournamentDetail() {
 		return act(() => joinTournament(id))
 	}
 
-	const fresh = data.id === id
-	const tournament = fresh ? data.tournament : null
-	const loadError = fresh ? data.error : ""
-
 	if (loadError)
 		return <ErrorMessage className="py-16 text-center">Couldn't load the tournament. {loadError}</ErrorMessage>
 
@@ -90,6 +125,9 @@ function TournamentDetail() {
 				hostUsername={tournament.created_by?.username}
 				myUsername={user?.username}
 			/>
+
+			{/* Who is actually playing whom, once there is a draw to show. */}
+			<RoundsPanel rounds={tournament.rounds} myPublicId={user?.public_id} />
 
 			<div className="flex flex-wrap items-start gap-4">
 				{/* A tournament *is* its own config — the settings sit flat on it — so

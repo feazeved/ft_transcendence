@@ -224,6 +224,7 @@ function GameTable({ game, send, error, onRematch, rematchBusy }) {
 					iWon={game.winner_id === game.your_player_id}
 					onRematch={onRematch}
 					busy={rematchBusy}
+					tournamentCode={game.tournament}
 				/>
 			)}
 		</section>
