@@ -119,7 +119,6 @@ function GameTable({ game, send, error, onRematch, rematchBusy }) {
 	const others = me ? seatOrder(game).slice(1) : game.players
 	const visibleNotices = notices.filter((notice) => now - notice.at < NOTICE_MS)
 	// The refusal keeps the notices' lifetime, off the same ticking clock: there
-	// is still no second timer to start, clear or leak.
 	const errorText = error && now - error.at < NOTICE_MS ? error.text : ""
 
 	const status = isOver

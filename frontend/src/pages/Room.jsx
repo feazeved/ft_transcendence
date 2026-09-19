@@ -36,14 +36,6 @@ function Room() {
 	// The room's own code. The route param can be either a code or a UUID, and the
 	// chat needs the code: an invite message is tagged with it.
 	const [joinCode, setJoinCode] = useState(null)
-	// Two kinds of failure, and they do not behave the same way. `error` is a
-	// condition — the room is closed, the join was refused — and it stays until
-	// something changes it. A refused move is news: "that card can't be played",
-	// "it isn't your turn". It says its piece at the table and goes, like every
-	// other notice there, so it is kept apart and carries the moment it arrived.
-	// The moment is what lets the table expire it, and what makes the same
-	// refusal twice in a row count as two pieces of news rather than one string
-	// that did not change.
 	const [error, setError] = useState("")
 	const [tableError, setTableError] = useState(null) // { text, at }
 	// The table's chat, kept here because this is the file that owns the socket it
@@ -123,9 +115,6 @@ function Room() {
 				return
 			setGame(data)
 		} else if (data.type === "error") {
-			// Everything this socket refuses is a move or a chat line, and both
-			// only happen at the table — the lobby acts over REST, through `act`
-			// below, and keeps its own error.
 			setTableError({ text: data.message, at: Date.now() })
 		}
 	}, [])
