@@ -178,3 +178,25 @@ class LobbyPayloadTests(TransactionTestCase):
 		match, non_host = await sync_to_async(build)()
 		lobby = await _lobby_for(non_host, match)
 		self.assertTrue(lobby["you_may_start"])
+
+	async def test_an_ordinary_room_belongs_to_no_tournament(self):
+		game, alice, _ = await sync_to_async(self._room)()
+		lobby = await _lobby_for(alice, game)
+		self.assertIsNone(lobby["tournament"])
+
+	# The way back. A round's next tables are created the moment its last match
+	# finishes, and the tournament page is what takes people to them — so the
+	# table has to know which tournament to send them back to.
+	async def test_a_tournament_table_carries_the_code_of_its_tournament(self):
+		def build():
+			ana = User.objects.create_user(username="ana", email="ana@example.com", password="x")
+			bea = User.objects.create_user(username="bea", email="bea@example.com", password="x")
+			tournament = Tournament.objects.create(name="Cup", created_by=ana, max_participants=2)
+			TournamentParticipant.objects.create(tournament=tournament, user=ana)
+			TournamentParticipant.objects.create(tournament=tournament, user=bea)
+			tournament.start()
+			return Game.objects.get(tournament=tournament, tournament_round=1), ana, tournament
+
+		match, ana, tournament = await sync_to_async(build)()
+		lobby = await _lobby_for(ana, match)
+		self.assertEqual(lobby["tournament"], tournament.join_code)
