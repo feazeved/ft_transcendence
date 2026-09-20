@@ -38,14 +38,14 @@ services:
 
       # The public host, and the origin CSRF will accept form posts from.
       - key: DJANGO_ALLOWED_HOSTS
-        value: one-wla6.onrender.com
+        value: ft-transcendence-zn3z.onrender.com
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
-        value: https://one-wla6.onrender.com
+        value: https://ft-transcendence-zn3z.onrender.com
 
       # Where password-reset and e-mail-confirmation links point, and where
       # OAuth hands the browser back to. Same origin as everything else now.
       - key: FRONTEND_URL
-        value: https://one-wla6.onrender.com
+        value: https://ft-transcendence-zn3z.onrender.com
 
       # Each worker holds its own Redis connection and its own BRPOP loop, so
       # this multiplies the channel-layer command count as well as the memory.
