@@ -2,7 +2,7 @@
 	"redirects": [
 		{
 			"source": "/(.*)",
-			"destination": "https://one-wla6.onrender.com/$1",
+			"destination": "https://ft-transcendence-zn3z.onrender.com/$1",
 			"permanent": false
 		}
 	]

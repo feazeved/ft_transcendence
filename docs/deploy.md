@@ -36,9 +36,9 @@ Set in the dashboard, under the service's Environment:
 | --- | --- | --- |
 | `DJANGO_SECRET_KEY` | a long random string | Changing it signs everyone out. |
 | `DJANGO_DEBUG` | `False` | |
-| `DJANGO_ALLOWED_HOSTS` | `one-wla6.onrender.com` | The public host, comma-separated if there is more than one. |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://one-wla6.onrender.com` | With the scheme. |
-| `FRONTEND_URL` | `https://one-wla6.onrender.com` | Password-reset and confirmation links, and where OAuth returns the browser. Same origin as the rest now. |
+| `DJANGO_ALLOWED_HOSTS` | `ft-transcendence-zn3z.onrender.com` | The public host, comma-separated if there is more than one. |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://ft-transcendence-zn3z.onrender.com` | With the scheme. |
+| `FRONTEND_URL` | `https://ft-transcendence-zn3z.onrender.com` | Password-reset and confirmation links, and where OAuth returns the browser. Same origin as the rest now. |
 | `DATABASE_URL` | from the Postgres instance | Render fills this in for you if you attach its own database. |
 | `REDIS_URL` | the managed Redis URL | `rediss://` (TLS) is fine as-is. |
 | `UVICORN_WORKERS` | `2` | Each worker is another Redis connection and another BRPOP loop. |
@@ -75,8 +75,8 @@ them, and that URL is now the Render host. In the Google Cloud console and on th
 42 intranet, the authorised redirect URIs are:
 
 ```
-https://one-wla6.onrender.com/accounts/google/login/callback/
-https://one-wla6.onrender.com/accounts/fortytwo/login/callback/
+https://ft-transcendence-zn3z.onrender.com/accounts/google/login/callback/
+https://ft-transcendence-zn3z.onrender.com/accounts/fortytwo/login/callback/
 ```
 
 An old frontend-host entry there will fail with a redirect-URI mismatch, which
@@ -92,13 +92,13 @@ depends on it.
 
 ```sh
 # The app answers, and the database behind it does too.
-curl -sS https://one-wla6.onrender.com/healthz/
+curl -sS https://ft-transcendence-zn3z.onrender.com/healthz/
 
 # The WebSocket really is a WebSocket. HTTP/1.1 matters: HTTP/2 has no Upgrade.
 curl -sSi --http1.1 -m 10 \
 	-H 'Connection: Upgrade' -H 'Upgrade: websocket' \
 	-H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-	https://one-wla6.onrender.com/ws/chat/ | head -1
+	https://ft-transcendence-zn3z.onrender.com/ws/chat/ | head -1
 ```
 
 `403 Forbidden` is the pass: that is Django refusing a socket with no session,
