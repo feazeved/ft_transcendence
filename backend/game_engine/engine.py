@@ -65,11 +65,12 @@ def _require_players_turn(state: GameState, player_id: str) -> None:
 	current = state.players[state.current_player_index]
 
 	if current.player_id != player_id:
-		raise IllegalMove(f"It is not {player_id}'s turn (current: {current.player_id})")
+		raise IllegalMove(f"It is {current.name}'s turn")
 
 def _require_game_not_over(state: GameState) -> None:
 	if state.winner_id is not None:
-		raise GameOver(f"Game already won by {state.winner_id}")
+		winner = next((player for player in state.players if player.player_id == state.winner_id), None)
+		raise GameOver(f"Game already won by {winner.name if winner else state.winner_id}")
 
 def _get_player(state: GameState, player_id: str) -> Player:
 	for p in state.players:
