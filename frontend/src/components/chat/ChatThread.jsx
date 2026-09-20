@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react"
+import { Link } from "react-router"
 import ChatComposer from "./ChatComposer.jsx"
 import ChatMessage from "./ChatMessage.jsx"
 import Avatar from "@/components/ui/Avatar.jsx"
@@ -49,8 +50,16 @@ function ChatThread({ row, thread, myPublicId, invite, typing, error, onSend, on
 			<header className="flex flex-none items-center gap-2.5 border-b border-white/10 px-3.5 py-3">
 				<Avatar src={row.avatarUrl} name={row.name} size="sm" ring={row.online ? "green" : undefined} />
 				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+					{/* A row the friends list has not caught up with has no public id
+					    yet, so it stays plain text rather than a dead link. */}
 					<h2 id={titleId} className="truncate font-title text-[17px] font-bold text-white">
-						{row.name}
+						{row.publicId ? (
+							<Link to={`/users/${row.publicId}`} className="underline-offset-4 hover:underline">
+								{row.name}
+							</Link>
+						) : (
+							row.name
+						)}
 					</h2>
 					<span
 						className={`flex items-center gap-1.5 font-mono text-[10px] tracking-[0.1em] ${
