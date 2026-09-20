@@ -124,6 +124,18 @@ DATABASES = {
 	)
 }
 
+# Keep the connection instead of dialling a new one for every request and every
+# card played. Django's default is 0 — open, query, hang up — which is free next
+# to a database on the same machine and expensive next to a managed one: opening
+# it costs a TLS handshake and several round trips, measured at roughly three
+# times what the query itself takes. It was most of the delay between playing a
+# card and seeing it move.
+#
+# CONN_HEALTH_CHECKS is what makes reuse safe: a connection the server closed
+# while it sat idle is detected and replaced, instead of failing one request.
+DATABASES['default']['CONN_MAX_AGE'] = env.int('DJANGO_CONN_MAX_AGE', default=60)
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+
 SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = [
