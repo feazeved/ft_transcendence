@@ -13,9 +13,9 @@ const PEGI = [
 ]
 
 const TEAM = [
+	"Alex Barbosa (alebarbo)",
 	"Daniel Fonseca (dda-fons)",
 	"Felipe Azevedo (feazeved)",
-	"Alex Barbosa (alebarbo)",
 	"Wallace Lucas (wlucas-f)",
 ]
 
