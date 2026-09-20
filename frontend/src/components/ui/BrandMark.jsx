@@ -11,14 +11,18 @@ const BAR_COLORS = ["bg-red", "bg-blue", "bg-green", "bg-yellow"]
 function BrandMark({ size = "sm", className = "" }) {
 	const s = SIZES[size] ?? SIZES.sm
 	return (
-		<span className={`flex items-center ${s.gap} ${className}`}>
-			<span className={`font-logo font-extrabold text-white ${s.word}`}>ONE</span>
-			<span aria-hidden="true" className={`flex ${s.bars}`}>
-				{BAR_COLORS.map((color) => (
-					<i key={color} className={`${s.bar} ${color}`} />
-				))}
+			<span className={`group flex items-center ${s.gap} ${className}`}>
+				<span className={`font-logo font-extrabold text-white ${s.word}`}>ONE</span>
+				<span aria-hidden="true" className={`flex ${s.bars}`}>
+					{BAR_COLORS.map((color, i) => (
+						<i
+							key={color}
+							className={`${s.bar} ${color} motion-safe:group-hover:animate-[wave_0.6s_ease-in-out_1]`}
+							style={{ animationDelay: `${i * 0.1}s` }}
+						/>
+					))}
+				</span>
 			</span>
-		</span>
 	)
 }
 
