@@ -18,6 +18,8 @@ import {
 	threadsFromConversations,
 	totalUnread,
 	withHistory,
+	withNotice,
+	withoutNotice,
 	withoutTab,
 	withTab,
 } from "./chat.js"
@@ -465,5 +467,32 @@ describe("read receipts", () => {
 		const empty = { ...emptyChat(), threads: { ines: { conversationId: 7, messages: [], readUpTo: null } } }
 		expect(markRead(empty, 7)).toBe(empty)
 		expect(isLastMessageRead(empty.threads.ines, ME)).toBe(false)
+	})
+})
+
+describe("dock notices", () => {
+	const match = (round = 1) => ({
+		kind: "tournament_match",
+		tournament: "8K2P",
+		tournament_name: "Friday Cup",
+		round,
+		room_code: "9QTB",
+		game_id: "uuid-1",
+	})
+
+	// The dedupe is the one that matters: two frames for one table would stack
+	// two identical cards over the launcher.
+	it("keeps a notice once, and a later round apart from it", () => {
+		const once = withNotice([], match())
+		expect(once).toHaveLength(1)
+		expect(withNotice(once, match())).toBe(once)
+		expect(withNotice(once, match(2))).toHaveLength(2)
+	})
+
+	it("holds three at most, and drops the one dismissed", () => {
+		let notices = []
+		for (const round of [1, 2, 3, 4]) notices = withNotice(notices, match(round))
+		expect(notices.map((notice) => notice.round)).toEqual([2, 3, 4])
+		expect(withoutNotice(notices, notices[0].id)).toHaveLength(2)
 	})
 })

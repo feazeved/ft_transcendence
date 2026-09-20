@@ -12,6 +12,14 @@ User = get_user_model()
 IN_MEMORY_LAYER = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 
+# The table log rides this same socket now, so a test waiting for the state has
+# to step over the line that narrates it.
+async def _next_state(communicator):
+	while True:
+		frame = await communicator.receive_json_from()
+		if frame["type"] != "chat_message":
+			return frame
+
 def _session_cookie_for(user):
 	session = SessionStore()
 	session[SESSION_KEY] = str(user.pk)
@@ -92,7 +100,7 @@ class TournamentMatchIntegrationTests(TransactionTestCase):
 		await communicator.send_json_to({
 			"action": "play_card", "card": card_to_dict(winning_card), "chosen_color": "red",
 		})
-		response = await communicator.receive_json_from()
+		response = await _next_state(communicator)
 		self.assertEqual(response["winner_id"], str(alice_gp.pk))
 
 		await sync_to_async(tournament.refresh_from_db)()
