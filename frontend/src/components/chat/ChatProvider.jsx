@@ -6,6 +6,7 @@ import {
 	getMessages,
 	listConversations,
 	loadTabs,
+	markRead,
 	openChatSocket,
 	openPresenceSocket,
 	openThread as clearUnread,
@@ -121,6 +122,9 @@ export function ChatProvider({ children }) {
 							...local.messages.filter((message) => !known.has(message.id)),
 						]),
 						loaded: local.loaded,
+						// A receipt only arrives over the socket, so a refetch must not
+						// take "read" back off a message that is read.
+						readUpTo: local.readUpTo ?? fromServer.readUpTo,
 						// The one number the server does not get the last word on: the
 						// thread you are looking at was read, and `mark_read` has already
 						// been sent. Taking the server's count back would put a badge on
@@ -168,6 +172,8 @@ export function ChatProvider({ children }) {
 							return next
 						})
 					}, TYPING_FOR_MS)
+				} else if (data.type === "read_receipt") {
+					setChat((current) => markRead(current, data.conversation_id))
 				} else if (data.type === "error") {
 					setError(data.message)
 				}

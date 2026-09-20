@@ -23,7 +23,9 @@ export const MAX_MESSAGE_LENGTH = 500
 // receiveMessage for why it has to exist.
 
 export function emptyThread() {
-	return { conversationId: null, messages: [], unread: 0, loaded: false }
+	// `readUpTo`: the last message the other side has said they read. Null until
+	// a receipt lands — "not read" is a claim we have no right to make.
+	return { conversationId: null, messages: [], unread: 0, loaded: false, readUpTo: null }
 }
 
 export function emptyChat() {
@@ -58,6 +60,8 @@ export function threadsFromConversations(conversations = []) {
 			messages: conversation.last_message ? [conversation.last_message] : [],
 			unread: conversation.unread_count ?? 0,
 			loaded: false,
+			// Receipts are live, so a reload starts again from "they have not said".
+			readUpTo: null,
 		}
 	}
 	return threads
@@ -79,6 +83,38 @@ export function withHistory(state, username, messages = []) {
 		...state,
 		threads: { ...state.threads, [username]: { ...thread, messages: merged, loaded: true } },
 	}
+}
+
+// The other side has read this conversation. A receipt means "everything up to
+// now", so what is recorded is the last message in the thread when it lands —
+// the message, not the clock: ids only go up, browsers disagree on the time.
+export function markRead(state, conversationId) {
+	const username = Object.keys(state.threads).find(
+		(name) => state.threads[name].conversationId === conversationId,
+	)
+	if (!username) return state
+
+	const thread = state.threads[username]
+	const last = thread.messages[thread.messages.length - 1]
+	if (!last) return state
+
+	return { ...state, threads: { ...state.threads, [username]: { ...thread, readUpTo: last.id } } }
+}
+
+// The id of my last line in this thread, or null. Only that one carries the
+// receipt: "read" covers everything before it.
+export function lastOwnMessageId(thread, myPublicId) {
+	const messages = thread?.messages ?? []
+	for (let i = messages.length - 1; i >= 0; i--) {
+		if (messages[i]?.user?.public_id === myPublicId) return messages[i].id
+	}
+	return null
+}
+
+export function isLastMessageRead(thread, myPublicId) {
+	const mine = lastOwnMessageId(thread, myPublicId)
+	if (mine === null || thread?.readUpTo == null) return false
+	return mine <= thread.readUpTo
 }
 
 // Opening a thread is what clears its badge. The provider sends `mark_read`

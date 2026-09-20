@@ -3,7 +3,7 @@ import ChatComposer from "./ChatComposer.jsx"
 import ChatMessage from "./ChatMessage.jsx"
 import Avatar from "@/components/ui/Avatar.jsx"
 import { ErrorMessage } from "@/components/ui/Message.jsx"
-import { presenceLabel } from "@/lib/chat.js"
+import { isLastMessageRead, presenceLabel } from "@/lib/chat.js"
 
 const ICON =
 	"h-8 w-8 flex-none cursor-pointer rounded-md border-2 border-line-strong bg-transparent font-mono text-sm leading-none text-soft transition-colors hover:border-white hover:text-white"
@@ -26,6 +26,8 @@ function ChatThread({ row, thread, myPublicId, invite, typing, error, onSend, on
 	const titleId = useId()
 	const messages = thread?.messages ?? []
 	const count = messages.length
+	// Drawn once, under the last thing I said.
+	const read = isLastMessageRead(thread, myPublicId)
 
 	// Opening a thread puts the cursor where you are about to write. The delay is
 	// a frame, not a guess: the box has to exist before it can hold focus.
@@ -109,6 +111,11 @@ function ChatThread({ row, thread, myPublicId, invite, typing, error, onSend, on
 						otherName={row.name}
 					/>
 				))}
+				{read && (
+					<li className="self-end pr-1 font-mono text-[10px] tracking-[0.1em] text-green-soft">
+						READ
+					</li>
+				)}
 			</ul>
 
 			{error && <ErrorMessage className="flex-none px-3.5 pb-1 text-[11px]">{error}</ErrorMessage>}
