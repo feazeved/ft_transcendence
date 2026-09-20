@@ -6,6 +6,8 @@ from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.urls import reverse
 from django.utils import timezone
 
+from .. import presence
+
 User = get_user_model()
 
 
@@ -95,18 +97,38 @@ class PublicProfileTests(TestCase):
 
 
 class OnlineStatusTests(TestCase):
-	def test_never_seen_is_not_online(self):
+	"""`is_online` asks one question: is a presence socket open right now."""
+
+	def tearDown(self):
+		for key in presence._redis_client.keys("presence:connections:*"):
+			presence._redis_client.delete(key)
+
+	def test_with_no_connection_you_are_offline(self):
 		user = User.objects.create_user(username="alice", email="alice@example.com", password="x")
 		self.assertFalse(user.is_online)
 
-	def test_recently_seen_is_online(self):
+	def test_a_registered_connection_makes_you_online(self):
 		user = User.objects.create_user(username="alice", email="alice@example.com", password="x")
-		user.last_seen_at = timezone.now()
+		presence.register_connection(user.pk)
 		self.assertTrue(user.is_online)
 
-	def test_seen_long_ago_is_not_online(self):
+	def test_closing_the_last_connection_makes_you_offline_at_once(self):
 		user = User.objects.create_user(username="alice", email="alice@example.com", password="x")
-		user.last_seen_at = timezone.now() - User.ONLINE_THRESHOLD * 2
+		presence.register_connection(user.pk)
+		presence.unregister_connection(user.pk)
+		self.assertFalse(user.is_online)
+
+	def test_a_second_tab_keeps_you_online_when_the_first_closes(self):
+		user = User.objects.create_user(username="alice", email="alice@example.com", password="x")
+		presence.register_connection(user.pk)
+		presence.register_connection(user.pk)
+		presence.unregister_connection(user.pk)
+		self.assertTrue(user.is_online)
+
+	# The bug in one test: being seen recently is not being here.
+	def test_having_been_seen_a_moment_ago_is_not_being_online(self):
+		user = User.objects.create_user(username="alice", email="alice@example.com", password="x")
+		user.last_seen_at = timezone.now()
 		self.assertFalse(user.is_online)
 
 	def test_an_authenticated_request_bumps_last_seen_at(self):
@@ -116,4 +138,3 @@ class OnlineStatusTests(TestCase):
 		self.client.get(reverse("rest_user_details"))
 		user.refresh_from_db()
 		self.assertIsNotNone(user.last_seen_at)
-		self.assertTrue(user.is_online)

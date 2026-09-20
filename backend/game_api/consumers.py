@@ -69,10 +69,12 @@ class PresenceConsumer(WebsocketConsumer):
 		self.group_name = f"presence_{user.pk}"
 
 		async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
-		self.accept()
 		get_user_model().objects.filter(pk=user.pk).update(last_seen_at=timezone.now())
 
+		# Counted before the handshake is answered: otherwise the client is
+		# connected and asking who is online before this says so.
 		connection_count = presence.register_connection(user.pk)
+		self.accept()
 
 		if connection_count == 1:
 			self._broadcast_to_friends("online")
@@ -90,6 +92,12 @@ class PresenceConsumer(WebsocketConsumer):
 
 		if remaining_connections == 0:
 			self._broadcast_to_friends("offline")
+
+	def receive(self, text_data=None, bytes_data=None):
+		# The client's heartbeat, and nothing else: it renews this connection's key.
+		user = getattr(self, "user", None)
+		if user is not None:
+			presence.touch(user.pk)
 
 	def _broadcast_to_friends(self, status):
 		# "online" here means "work out where they actually are" — they may have

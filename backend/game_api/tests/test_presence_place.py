@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from .. import consumers
+from .. import consumers, presence
 from ..models import Game, GamePlayer, GameStatus
 from ..serializers import PublicProfileSerializer
 
@@ -17,6 +17,10 @@ class PresencePlaceTests(TestCase):
 
 	def setUp(self):
 		self.alice = User.objects.create_user(username="alice", email="a@example.com", password="x")
+
+	def tearDown(self):
+		for key in presence._redis_client.keys("presence:connections:*"):
+			presence._redis_client.delete(key)
 
 	def _room(self, status, connected=True):
 		game = Game.objects.create(
@@ -50,10 +54,18 @@ class PresencePlaceTests(TestCase):
 		# A page that has only just loaded has had no socket frame yet, so the
 		# first answer has to come down with the friends list.
 		game = self._room(GameStatus.PENDING)
+		presence.register_connection(self.alice.pk)
 		self.alice.refresh_from_db()
 
 		data = PublicProfileSerializer(self.alice).data
 		self.assertEqual(data["presence"], {"status": "lobby", "room_code": game.join_code})
+
+	# Why offline is asked first: a seat can outlive its person — kill the backend
+	# mid-game and every `is_connected` stays true — while a presence key expires.
+	def test_a_seat_left_behind_by_somebody_who_is_gone_says_offline(self):
+		self._room(GameStatus.PENDING)
+		data = PublicProfileSerializer(self.alice).data
+		self.assertEqual(data["presence"], {"status": "offline", "room_code": None})
 
 	def test_an_offline_profile_says_offline_without_asking_where(self):
 		stranger = User.objects.create_user(username="ghost", email="g@example.com", password="x")

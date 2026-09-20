@@ -139,7 +139,6 @@ class User(AbstractUser):
     deleted_at = models.DateTimeField(blank=True, null=True)
 
     DEFAULT_AVATAR_URL = f'{settings.STATIC_URL}avatars/default.jpg'
-    ONLINE_THRESHOLD = timezone.timedelta(minutes=5)
 
     @property
     def avatar_url(self):
@@ -150,9 +149,14 @@ class User(AbstractUser):
 
     @property
     def is_online(self):
-        if self.last_seen_at is None:
-            return False
-        return timezone.now() - self.last_seen_at < self.ONLINE_THRESHOLD
+        """
+        A live presence connection, not "seen in the last five minutes":
+        `PresenceConsumer` stamps `last_seen_at` on the way out too, so that
+        answered the wrong question. The socket's Redis count is the one answer.
+        """
+        from . import presence
+
+        return presence.is_online(self.pk)
 
     def accepted_friend_ids(self):
         accepted = Friendship.objects.filter(Q(requester=self) | Q(addressee=self), status=FriendshipStatus.ACCEPTED).values_list("requester_id", "addressee_id")
