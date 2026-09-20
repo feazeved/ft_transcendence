@@ -1,3 +1,4 @@
+import { Link } from "react-router"
 import Avatar from "@/components/ui/Avatar.jsx"
 
 // Ranked numbers in rows and columns are a table: a screen reader can then say
@@ -67,7 +68,12 @@ function LeaderboardTable({ players, page, pageSize, myUsername }) {
 										<span className="flex items-center gap-2.5">
 											{/* The ranking shows the username, not the display name: it is the
 										    name the leaderboard is kept under. */}
-										<span className="truncate font-title text-[19px] font-bold text-white">{player.username}</span>
+										<Link
+											to={`/users/${player.public_id}`}
+											className="truncate font-title text-[19px] font-bold text-white underline-offset-4 hover:underline"
+										>
+											{player.username}
+										</Link>
 											{isMe && (
 												<span className="rounded-sm border border-yellow px-1.5 py-0.5 font-mono text-[11px] tracking-[0.12em] text-yellow">
 													you

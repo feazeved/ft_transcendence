@@ -3,8 +3,7 @@ import api from "./api.js"
 // Home's Top 5 (area 02) calls this too, with pageSize: 5.
 export function getLeaderboard({ page = 1, pageSize = 25, ordering = "wins" } = {}) {
 	const query = new URLSearchParams({ page, page_size: pageSize, ordering })
-	// `ordering` is ignored by the backend until BACKEND_REDESIGN_TASKS §3.1
-	// lands. Sending it now means nothing here has to change when it does.
+	// `LeaderboardView` sorts over the whole table, not over the page.
 	return api.get(`/leaderboard/?${query}`)
 }
 

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import AvatarPicker from "@/components/profile/AvatarPicker.jsx"
+import MatchHistoryPanel from "@/components/profile/MatchHistoryPanel.jsx"
 import PasswordPanel from "@/components/profile/PasswordPanel.jsx"
 import ProfileCard from "@/components/profile/ProfileCard.jsx"
 import RecordPanel from "@/components/profile/RecordPanel.jsx"
 import PageHeader from "@/components/ui/PageHeader.jsx"
 import api from "@/lib/api.js"
+import { getMatchHistory } from "@/lib/profiles.js"
 import { useAuth } from "@/lib/auth.jsx"
+
+const HISTORY_SIZE = 10
 
 // A preset arrives as a URL and an upload as a File, but the backend takes one
 // multipart field either way, so a chosen preset is fetched back as a File.
@@ -28,6 +32,7 @@ function Profile() {
 	// so there is nothing to substitute here.
 	const [avatar, setAvatar] = useState(user?.avatar_url ?? "")
 	const [stats, setStats] = useState(null)
+	const [history, setHistory] = useState({ status: "loading", matches: [], error: "" })
 
 	const [editing, setEditing] = useState(false)
 	const [draft, setDraft] = useState({ name, username, avatar })
@@ -60,6 +65,24 @@ function Profile() {
 				if (!ignore) setStats(data)
 			})
 			.catch(() => {})
+
+		return () => {
+			ignore = true
+		}
+	}, [user?.public_id])
+
+	// The games behind the numbers, same panel as somebody else's profile.
+	useEffect(() => {
+		if (!user?.public_id) return undefined
+		let ignore = false
+
+		getMatchHistory(user.public_id, { pageSize: HISTORY_SIZE })
+			.then((page) => {
+				if (!ignore) setHistory({ status: "ready", matches: page.results ?? [], error: "" })
+			})
+			.catch((err) => {
+				if (!ignore) setHistory({ status: "error", matches: [], error: err.message })
+			})
 
 		return () => {
 			ignore = true
@@ -167,6 +190,13 @@ function Profile() {
 					<PasswordPanel />
 				</div>
 			</div>
+
+			<MatchHistoryPanel
+				matches={history.matches}
+				publicId={user?.public_id}
+				status={history.status}
+				error={history.error}
+			/>
 
 			{/* Picking an image only updates the draft — it goes to the backend with
 			    everything else on Save. */}
