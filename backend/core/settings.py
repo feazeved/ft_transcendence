@@ -24,12 +24,12 @@ environ.Env.read_env(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-826$9gpgvh)y#3bv*occ(_#z#24)q%*g==)tn2m1)-jtnvb(%b')
+SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DJANGO_DEBUG', default=True)
+DEBUG = env.bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
 
 AUTH_USER_MODEL = 'game_api.User'
 
@@ -103,13 +103,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = 'core.asgi.application'
 
-REDIS_URL = env('REDIS_URL', default='redis://redis:6379/0')
+REDIS_URL = env('REDIS_URL')
 
 CHANNEL_LAYERS = {
 	'default': {
 		'BACKEND': 'channels_redis.core.RedisChannelLayer',
 		'CONFIG': {
-			'hosts': [REDIS_URL],
+			'hosts': [{'address': REDIS_URL, 'socket_timeout': 30}],
 		},
 	}
 }
