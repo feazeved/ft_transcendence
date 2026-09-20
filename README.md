@@ -58,3 +58,78 @@ Deliver a production-style web application that combines a rich single-page fron
 - **One-command deployment** with Docker Compose, Nginx reverse proxy and HTTPS.
 
 ---
+
+
+## 2. Instructions
+
+### Prerequisites
+
+| Requirement | Version / Notes |
+|---|---|
+| Docker Engine | 24+ |
+| Docker Compose | v2 (`docker compose`) |
+| GNU Make | any recent version (the `Makefile` wraps every Docker Compose command) |
+| Google Chrome | latest stable (target browser) |
+| OpenSSL | used by `docker/nginx/gen-certs.sh` to generate the local HTTPS certificate |
+| OAuth credentials | a 42 API application and a Google OAuth client (for social login) |
+
+### Step-by-step
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/feazeved/ft_transcendence.git
+cd ft_transcendence
+
+# 2. Create your environment file from the template
+cp .env.example .env
+#    then edit .env and fill in:
+#      - DJANGO_SECRET_KEY
+#      - POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB, and make sure the
+#        user, password and database inside DATABASE_URL match them
+#      - allowed hosts / FRONTEND_URL, Redis host
+#      - 42 and Google OAuth client id / secret
+#      - e-mail settings (used for e-mail confirmation and password-reset e-mails)
+
+# 3. Build and start everything with a single command
+make            # = make up = docker compose up --build -d
+```
+
+`make up` first runs `check-env`, which stops with an explanatory message if `.env` is missing. When the containers are up, open **https://localhost** in Google Chrome. The HTTPS certificate is generated automatically by `docker/nginx/gen-certs.sh` on the first start, so the browser asks you to accept it the first time.
+
+### Makefile reference
+
+| Command | What it does |
+|---|---|
+| `make` / `make up` | Check `.env`, then build and start the whole stack in the background |
+| `make down` | Stop and remove the containers |
+| `make re` | `down` then `up` |
+| `make build` | Rebuild all images without cache |
+| `make logs` / `make ps` | Follow logs / list running services |
+| `make fclean` | Remove containers, **volumes**, images and orphans (full clean) |
+| `make reset-db` | Drop the volumes (including the database) and start again from scratch |
+| `make migrate` / `make makemigrations` | Apply / create Django migrations in the `backend` container |
+| `make check-drift` | Report any model column missing from the database (detects an already-applied migration that was edited afterwards — see `docs/adr/0003-applied-migrations-are-never-edited.md`) |
+| `make superuser` | Create a Django admin user |
+| `make backend-shell` / `frontend-shell` / `db-shell` | Open a shell in the backend / frontend container, or `psql` in the database |
+| `make test-engine` | Run the game-engine unit tests (`pytest`) |
+| `make test-api` | Run the Django API / consumer tests (`manage.py test game_api`) |
+| `make backend-tests` | Run both test suites (`test-engine` + `test-api`) |
+
+> Production deployment (Render / Vercel) uses `docker-compose.prod.yml` and a production Nginx configuration on top of the same images.
+
+> The `.env` file is ignored by Git. Never commit credentials — only `.env.example` is versioned.
+
+---
+
+## 3. Team Information
+
+| Member | 42 login · Git identities | Assigned role(s) | Responsibilities |
+|---|---|---|---|
+| **Daniel Fonseca** | `dda-fons` · `Danielfonsecaa` | **Product Owner** + **Lead Frontend Developer** | Defined the product vision and UX direction (the "hub" home page, lobby, table, profile), owned the visual redesign and design system, prioritised features, validated finished work, integrated the `dev`/`redesign` branches, prepared the deployment (Render / Vercel, production Nginx). |
+| **Felipe Suassuna** | `feazeved` · `Felipe Azevedo Soares Suassuna` | **Technical Lead** (DevOps) + **Developer** (infrastructure & frontend) | Owns the technical architecture and infrastructure: bootstrapped the repository, built the Docker / Nginx / Makefile stack and the HTTPS setup, prepared the deployment, reviewed and merged pull requests; also delivered the home, friends and leaderboard pages and the block-user feature. |
+| **Alex Barbosa** | `alebarbo` · `magusk89`, `Magusk Lutus` | **Project Manager / Scrum Master** + **Backend Developer** | Coordinated the team's work (issues, branches, pull requests), tracked progress and reviewed critical backend changes; developed the backend: Django project, game engine and its rules modifiers, authentication, presence, friends/profile API, chat, leaderboard, tournaments and the test-suite. |
+| **Wallace Gonçalves** | `wlucas-f` · `Wallace` | **Backend Developer** (data model & concurrency) | Designed and documented the database ERD, implemented room codes and names, the spectator model/endpoints, and hardened the game WebSocket consumer and viewsets (transactions, row-locking, `on_commit`). |
+
+> Since we are a four-person team, some members hold several roles, as allowed by the subject. All members developed code, participated in code reviews, tested and documented their own work.
+
+---
