@@ -124,6 +124,18 @@ DATABASES = {
 	)
 }
 
+# Keep the connection instead of dialling a new one for every request and every
+# card played. Django's default is 0 — open, query, hang up — which is free next
+# to a database on the same machine and expensive next to a managed one: opening
+# it costs a TLS handshake and several round trips, measured at roughly three
+# times what the query itself takes. It was most of the delay between playing a
+# card and seeing it move.
+#
+# CONN_HEALTH_CHECKS is what makes reuse safe: a connection the server closed
+# while it sat idle is detected and replaced, instead of failing one request.
+DATABASES['default']['CONN_MAX_AGE'] = env.int('DJANGO_CONN_MAX_AGE', default=60)
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+
 SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = [
@@ -155,6 +167,20 @@ SOCIALACCOUNT_PROVIDERS = {
 	},
 }
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Signing in with Google on an address that already has a password account logs
+# into that account, and connects the provider to it so it keeps working if the
+# address changes later. Without this, allauth refuses to touch the existing
+# account and drops the person into its own bare signup form — which is what
+# used to happen, pre-filled with a username they never chose.
+#
+# The trade is stated plainly in allauth's own docs: this trusts the provider
+# completely, because a dishonest one could sign into any account by claiming
+# its address. It only applies to an address the provider itself reports as
+# verified, and Google reports that. Our 42 provider does not say it yet
+# (game_api/providers/fortytwo/provider.py), so 42 still takes the long way.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 REST_AUTH = {
 	'SESSION_LOGIN': True,

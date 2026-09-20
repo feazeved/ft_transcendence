@@ -7,8 +7,33 @@ import django.db.models.deletion
 import django.utils.timezone
 import game_api.models
 import uuid
+from urllib.parse import urlparse
+
 from django.conf import settings
 from django.db import migrations, models
+
+
+def name_the_site(apps, schema_editor):
+    """Give django.contrib.sites the real domain, not Django's example.com.
+
+    The default row is created by a post_migrate hook that only fires when no
+    Site exists at all, so writing it here — during the migrate, before that
+    hook looks — is what keeps example.com from ever being written. It is worth
+    the trouble because people read it: allauth's social signup page says "You
+    are about to use your Google account to login to <domain>", and a site that
+    calls itself example.com in front of a visitor looks broken.
+
+    Taken from FRONTEND_URL so each environment names itself. It runs once, so
+    a domain that changes later has to be changed in the admin.
+    """
+    Site = apps.get_model('sites', 'Site')
+    Site.objects.update_or_create(
+        pk=settings.SITE_ID,
+        defaults={
+            'domain': urlparse(settings.FRONTEND_URL).netloc or 'localhost',
+            'name': 'ft_transcendence',
+        },
+    )
 
 
 class Migration(migrations.Migration):
@@ -17,6 +42,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('auth', '0012_alter_user_first_name_max_length'),
+        # For name_the_site below: the table it writes to is the sites app's.
+        ('sites', '0002_alter_domain_unique'),
     ]
 
     operations = [
@@ -232,4 +259,5 @@ class Migration(migrations.Migration):
             model_name='gameplayer',
             constraint=models.UniqueConstraint(fields=('game', 'seat'), name='unique_game_seat'),
         ),
+        migrations.RunPython(name_the_site, migrations.RunPython.noop),
     ]
