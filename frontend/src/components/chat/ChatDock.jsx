@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from "react"
 import ChatList from "./ChatList.jsx"
+import ChatNotices from "./ChatNotices.jsx"
 import ChatThread from "./ChatThread.jsx"
 import { useChat } from "./ChatProvider.jsx"
 import Avatar from "@/components/ui/Avatar.jsx"
@@ -30,6 +31,8 @@ function ChatDock() {
 		room,
 		error,
 		typing,
+		notices,
+		dismissNotice,
 		toggleList,
 		openThread,
 		closeThread,
@@ -152,6 +155,8 @@ function ChatDock() {
 			)}
 
 			<div className="flex flex-col items-end gap-2.5">
+				<ChatNotices notices={notices} onDismiss={dismissNotice} />
+
 				{openRow && (
 					<ChatThread
 						key={openRow.username}

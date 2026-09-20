@@ -122,6 +122,37 @@ def broadcast_game_update(game):
 	channel_layer = get_channel_layer()
 	async_to_sync(channel_layer.group_send)(f"game_{game.pk}", {"type": "game.update"})
 
+def log_event(game, body):
+	"""A line from the game itself in the table chat. No author: nobody said it."""
+	message = ChatMessage.objects.create(game=game, user=None, body=body, message_type=ChatMessageType.SYSTEM)
+	data = ChatMessageSerializer(message).data
+	transaction.on_commit(lambda: _broadcast_chat(game.pk, data))
+
+def _display_name(game_player):
+	if game_player is None:
+		return "Player"
+	return game_player.display_name or (game_player.user.username if game_player.user else "Player")
+
+def _hand_size(state, player_id):
+	for player in state.players:
+		if player.player_id == player_id:
+			return len(player.hand)
+	return 0
+
+def _broadcast_chat(game_pk, data):
+	from channels.layers import get_channel_layer
+
+	async_to_sync(get_channel_layer().group_send)(f"game_{game_pk}", {"type": "game.chat", "message": data})
+
+def notify_user(user_id, notice):
+	"""Put a notice in this person's chat dock. Live only, and carries its own text."""
+	from channels.layers import get_channel_layer
+
+	if user_id is None:
+		return
+
+	async_to_sync(get_channel_layer().group_send)(f"chat_{user_id}", {"type": "chat.notice", "notice": notice})
+
 def notify_friendship_change(*user_ids):
 	"""
 	Poke each of these users' presence sockets so their client refetches its
@@ -416,10 +447,14 @@ class GameConsumer(WebsocketConsumer):
 				state = state_from_dict(game.state)
 				player_id = str(player.pk)
 
+				card = None
+				chosen_color = None
+
 				if action == "play_card":
 					card = card_from_dict(payload["card"])
 					chosen_color_raw = payload.get("chosen_color")
-					chosen_color = Color(chosen_color_raw) if chosen_color_raw else None
+					if chosen_color_raw:
+						chosen_color = Color(chosen_color_raw)
 					new_state = play_card(state, player_id, card, chosen_color=chosen_color, target_id=payload.get("target_id"))
 				elif action == "draw_card":
 					new_state = draw_card(state, player_id)
@@ -429,6 +464,10 @@ class GameConsumer(WebsocketConsumer):
 					self._send_error(f"Unknown action: {action!r}")
 					return
 
+				log_event(game, self._describe_move(player, action, state, new_state, card, chosen_color))
+				if _hand_size(new_state, player_id) == 1 and _hand_size(state, player_id) != 1:
+					log_event(game, f"{_display_name(player)} is on ONE!")
+
 				game.state = state_to_dict(new_state)
 				game.turn_started_at = timezone.now()
 				if new_state.winner_id is not None:
@@ -437,6 +476,7 @@ class GameConsumer(WebsocketConsumer):
 					winner_gp = (GamePlayer.objects.filter(pk=int(new_state.winner_id)).select_related("user").first())
 					if winner_gp is not None:
 						game.winner = winner_gp.user
+						log_event(game, f"{_display_name(winner_gp)} won the game.")
 					ranked = sorted(new_state.players, key=lambda p: len(p.hand))
 					for position, ranked_player in enumerate(ranked, start=1):
 						GamePlayer.objects.filter(pk=int(ranked_player.player_id)).update(finish_position=position)
@@ -619,6 +659,19 @@ class GameConsumer(WebsocketConsumer):
 			"tournament": game.tournament.join_code if game.tournament_id else None,
 		}
 
+	def _describe_move(self, player, action, before, after, card, chosen_color):
+		who = _display_name(player)
+
+		if action == "play_card":
+			line = f"{who} played {card}"
+			return f"{line} and chose {chosen_color.value}" if chosen_color is not None else line
+
+		if action == "draw_card":
+			drawn = _hand_size(after, str(player.pk)) - _hand_size(before, str(player.pk))
+			return f"{who} drew {drawn} cards" if drawn > 1 else f"{who} drew a card"
+
+		return f"{who} passed"
+
 	def _expire_overdue_turn(self, game):
 		return expire_overdue_turn(game)
 
@@ -770,6 +823,9 @@ class ChatConsumer(WebsocketConsumer):
 
 	def chat_typing(self, event):
 		self.send(text_data=json.dumps({"type": "typing", "public_id": event["public_id"], "username": event["username"]}))
+
+	def chat_notice(self, event):
+		self.send(text_data=json.dumps({"type": "notice", **event["notice"]}))
 
 	def chat_read_receipt(self, event):
 		self.send(text_data=json.dumps({"type": "read_receipt", "conversation_id": event["conversation_id"], "reader_id": event["reader_id"]}))

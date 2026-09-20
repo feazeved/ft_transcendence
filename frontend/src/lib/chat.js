@@ -117,6 +117,24 @@ export function isLastMessageRead(thread, myPublicId) {
 	return mine <= thread.readUpTo
 }
 
+// A dock notice: the tournament saying where to be next, or that it is over.
+export const MAX_NOTICES = 3
+
+// Built from the notice, so the same one twice is still one notice.
+function noticeId(notice) {
+	return [notice.kind, notice.tournament, notice.round ?? "", notice.room_code ?? ""].join(":")
+}
+
+export function withNotice(notices = [], notice) {
+	const id = noticeId(notice)
+	if (notices.some((shown) => shown.id === id)) return notices
+	return [...notices, { ...notice, id }].slice(-MAX_NOTICES)
+}
+
+export function withoutNotice(notices = [], id) {
+	return notices.filter((notice) => notice.id !== id)
+}
+
 // Opening a thread is what clears its badge. The provider sends `mark_read`
 // alongside, so the server agrees and the badge stays cleared after a reload.
 export function openThread(state, username) {

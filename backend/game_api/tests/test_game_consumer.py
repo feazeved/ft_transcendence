@@ -22,6 +22,14 @@ async def drain_on_commit():
 
 	await sync_to_async(_drain)()
 
+# The table log rides this same socket now, so a test waiting for the state has
+# to step over the line that narrates it.
+async def _next_state(communicator):
+	while True:
+		frame = await communicator.receive_json_from()
+		if frame["type"] != "chat_message":
+			return frame
+
 def _session_cookie_for(user):
 	session = SessionStore()
 	session[SESSION_KEY] = str(user.pk)
@@ -303,8 +311,8 @@ class GameplayTests(TransactionTestCase):
 		})
 		await drain_on_commit()
 
-		alice_update = await alice_comm.receive_json_from()
-		bob_update = await bob_comm.receive_json_from()
+		alice_update = await _next_state(alice_comm)
+		bob_update = await _next_state(bob_comm)
 		self.assertEqual(alice_update["type"], "game_state")
 		self.assertEqual(bob_update["type"], "game_state")
 		self.assertEqual(alice_update["top_card"], card_to_play)

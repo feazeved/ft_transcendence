@@ -140,7 +140,8 @@ function Room() {
 			try {
 				const history = await getGameMessages(publicId)
 				if (!ignore) {
-					setTableHistoryCount(history.length)
+					// The log is not counted as unread, so it is not part of the mark.
+					setTableHistoryCount(history.filter((message) => message.message_type !== "system").length)
 					setTableMessages((current) => {
 						const seen = new Set(history.map((message) => message.id))
 						return sortMessages([...history, ...current.filter((m) => !seen.has(m.id))])

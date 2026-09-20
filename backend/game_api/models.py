@@ -6,7 +6,7 @@ import string
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -115,6 +115,7 @@ class AiDifficulty(models.TextChoices):
 class ChatMessageType(models.TextChoices):
     TEXT = 'text', 'Text'
     GAME_INVITE = 'game_invite', 'Game invite'
+    SYSTEM = 'system', 'System'
 
 
 # --- Tables --------------------------------------------------------------
@@ -340,9 +341,25 @@ class Tournament(models.Model):
                            display_name=getattr(player, 'display_name', '') or player.username)
                 for seat, player in enumerate(seating)
             ])
+            self._notify_table(game, seating)
 
         # A single table is the final: whoever wins it wins the tournament.
         return tables
+
+    def _notify_table(self, game, seating):
+        """Tell everyone seated here that their match is ready, once it exists."""
+        from . import consumers
+
+        notice = {
+            'kind': 'tournament_match',
+            'tournament': self.join_code,
+            'tournament_name': self.name,
+            'round': game.tournament_round,
+            'room_code': game.join_code,
+            'game_id': str(game.public_id),
+        }
+        user_ids = [player.pk for player in seating if player is not None]
+        transaction.on_commit(lambda: [consumers.notify_user(user_id, notice) for user_id in user_ids])
 
     def _advancing_from(self, game):
         """The top `advance_per_table` of one table, best placing first."""
@@ -410,6 +427,17 @@ class Tournament(models.Model):
         self.winner = winner
         self.finished_at = timezone.now()
         self.save(update_fields=['status', 'winner', 'finished_at'])
+
+        from . import consumers
+
+        notice = {
+            'kind': 'tournament_over',
+            'tournament': self.join_code,
+            'tournament_name': self.name,
+            'winner': winner.username if winner is not None else None,
+        }
+        user_ids = list(self.participants.values_list('user_id', flat=True))
+        transaction.on_commit(lambda: [consumers.notify_user(user_id, notice) for user_id in user_ids])
 
     def __str__(self):
         return self.name

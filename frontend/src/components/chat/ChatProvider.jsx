@@ -16,6 +16,8 @@ import {
 	threadsFromConversations,
 	totalUnread,
 	withHistory,
+	withNotice,
+	withoutNotice,
 	withoutTab,
 	withTab,
 } from "@/lib/chat.js"
@@ -55,6 +57,7 @@ export function ChatProvider({ children }) {
 	const [friendshipVersion, setFriendshipVersion] = useState(0)
 	const [presence, setPresence] = useState({})
 	const [typing, setTyping] = useState({})
+	const [notices, setNotices] = useState([])
 	const [error, setError] = useState("")
 
 	const [openWith, setOpenWith] = useState(null)
@@ -172,6 +175,8 @@ export function ChatProvider({ children }) {
 							return next
 						})
 					}, TYPING_FOR_MS)
+				} else if (data.type === "notice") {
+					setNotices((current) => withNotice(current, data))
 				} else if (data.type === "read_receipt") {
 					setChat((current) => markRead(current, data.conversation_id))
 				} else if (data.type === "error") {
@@ -229,6 +234,8 @@ export function ChatProvider({ children }) {
 	}, [myPublicId, load])
 
 	const send = useCallback((payload) => socketRef.current?.send(payload) ?? false, [])
+
+	const dismissNotice = useCallback((id) => setNotices((current) => withoutNotice(current, id)), [])
 
 	const rows = useMemo(
 		() => chatRows({ friends, threads: chat.threads, presence, myPublicId }),
@@ -385,6 +392,8 @@ export function ChatProvider({ children }) {
 			room,
 			error,
 			typing,
+			notices,
+			dismissNotice,
 			toggleList,
 			openThread,
 			closeThread,
@@ -406,6 +415,8 @@ export function ChatProvider({ children }) {
 			room,
 			error,
 			typing,
+			notices,
+			dismissNotice,
 			toggleList,
 			openThread,
 			closeThread,

@@ -25,14 +25,18 @@ function TableChat({ roomCode, messages, historyCount = 0, players = 0, myPublic
 	const [sendError, setSendError] = useState("")
 	const scrollRef = useRef(null)
 
-	// `historyCount` is how many of these messages came from the history fetch
-	// rather than over the socket. They are the conversation as it already was when
-	// you arrived, so they are not news: without this, refreshing mid-game badges
-	// the panel with a whole page of messages you have already read.
-	const unread = open ? 0 : Math.max(0, messages.length - Math.max(seenCount, historyCount))
+	// The badge counts what people said, never the log: a move a second would
+	// otherwise keep the panel permanently unread.
+	const spoken = messages.filter((message) => message.message_type !== "system")
+
+	// `historyCount` is how many of those came from the history fetch rather than
+	// over the socket. They are the conversation as it already was when you
+	// arrived, so they are not news: without this, refreshing mid-game badges the
+	// panel with a whole page of messages you have already read.
+	const unread = open ? 0 : Math.max(0, spoken.length - Math.max(seenCount, historyCount))
 
 	const toggle = () => {
-		if (open) setSeenCount(messages.length)
+		if (open) setSeenCount(spoken.length)
 		setOpen(!open)
 	}
 
@@ -97,6 +101,17 @@ function TableChat({ roomCode, messages, historyCount = 0, players = 0, myPublic
 							</li>
 						)}
 						{messages.map((message) => {
+							// No author, so no bubble and no side: a log down the middle.
+							if (message.message_type === "system")
+								return (
+									<li
+										key={message.id}
+										className="self-center px-2 text-center font-mono text-[11px] leading-relaxed text-muted"
+									>
+										{message.body}
+									</li>
+								)
+
 							const mine = message.user?.public_id === myPublicId
 							const sender = message.user?.display_name || message.user?.username || "Someone"
 							return (
