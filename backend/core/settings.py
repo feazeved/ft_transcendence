@@ -156,6 +156,20 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
+# Signing in with Google on an address that already has a password account logs
+# into that account, and connects the provider to it so it keeps working if the
+# address changes later. Without this, allauth refuses to touch the existing
+# account and drops the person into its own bare signup form — which is what
+# used to happen, pre-filled with a username they never chose.
+#
+# The trade is stated plainly in allauth's own docs: this trusts the provider
+# completely, because a dishonest one could sign into any account by claiming
+# its address. It only applies to an address the provider itself reports as
+# verified, and Google reports that. Our 42 provider does not say it yet
+# (game_api/providers/fortytwo/provider.py), so 42 still takes the long way.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
 REST_AUTH = {
 	'SESSION_LOGIN': True,
 	'USE_JWT': False,
