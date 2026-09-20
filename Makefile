@@ -1,4 +1,5 @@
 COMPOSE = docker compose
+PROD_COMPOSE = docker compose -f docker-compose.yml -f docker-compose.prod.yml
 
 define CHECK_DRIFT
 from django.apps import apps
@@ -17,7 +18,7 @@ print("No drift." if not drifted else "Drifted -- see docs/adr/0003-applied-migr
 endef
 export CHECK_DRIFT
 
-.PHONY: all check-env up down re build reset-db logs ps fclean backend-shell frontend-shell db-shell migrate makemigrations check-drift test-api test-engine backend-tests superuser
+.PHONY: all check-env up dev down re build reset-db logs ps fclean backend-shell frontend-shell db-shell migrate makemigrations check-drift test-api test-engine backend-tests superuser
 
 all: up
 
@@ -35,6 +36,9 @@ check-env:
 	}
 
 up: check-env
+	$(PROD_COMPOSE) up --build -d
+
+dev: check-env
 	$(COMPOSE) up --build -d
 
 down:
