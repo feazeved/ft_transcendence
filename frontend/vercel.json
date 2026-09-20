@@ -1,0 +1,9 @@
+{
+	"redirects": [
+		{
+			"source": "/(.*)",
+			"destination": "https://ft-transcendence-zn3z.onrender.com/$1",
+			"permanent": false
+		}
+	]
+}

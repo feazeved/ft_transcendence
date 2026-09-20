@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+/* Fonts: Poppins for the logo and big numbers, Baloo 2 for section titles,
+   Archivo for body text, Space Mono for labels and buttons. */
+  --font-sans: "Archivo", Helvetica, ui-sans-serif, system-ui, sans-serif;
+  --font-logo: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-title: "Baloo 2", cursive;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+/* Card colors*/
+  --color-red: #E02130;
+  --color-yellow: #FAB243;
+  --color-green: #169A4F;
+  --color-blue: #0077B9;
+
+/* Surfaces of the redesign */
+  --color-page: #141414;
+  --color-bar: #101010;
+  --color-panel: #17171B;
+  --color-line: #242424;
+  --color-line-strong: #333333;
+
+/* Text. `muted` replaces the design's #6F6F6F and #7A7A7A: it is the darkest
+   gray that still passes WCAG AA on every background used here, panels too.
+   The `-soft` red and blue are the design's own hover shades, used for small
+   text because #E02130 and #0077B9 only reach 3.8:1 at body sizes. */
+  --color-soft: #E6E6E6;
+  --color-dim: #BDBDBD;
+  --color-muted: #808080;
+  --color-red-soft: #F4606A;
+  --color-blue-soft: #3FA9E0;
+  --color-green-soft: #3FD98A;
+
+/* Hover fills */
+  --color-red-hover: #F0303F;
+  --color-blue-hover: #0A8FD8;
+  --color-green-hover: #1CC266;
+  --color-yellow-hover: #FFC766;
+
+/* Text that sits on a colored fill */
+  --color-on-green: #04210F;
+  --color-on-yellow: #2A1A00;
+}
+
+body {
+  background: var(--color-page);
+  color: #ffffff;
+}
+
+/* Scroll lock for ui/Dialog: a native <dialog> traps focus but not the wheel. */
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+
+/* global.css */
+@keyframes wave {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-4px); }
+}

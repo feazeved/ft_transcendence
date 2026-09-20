@@ -1,0 +1,3 @@
+# Every screen is a full page, and Home is the hub
+
+The old frontend opened Play, Tournaments, Leaderboard, Friends and Profile as popups over the current page (routes with a `background` location). The redesign draws every screen as a full page, and moves the room list and the rules onto Home. We dropped the popup routes rather than design popup versions of screens the design never drew. `/play` and `/rules` only redirect to Home's sections, so old links and bookmarks keep working. Dialogs for actions (create room, enter code, create tournament, picture picker) are still dialogs, just not routes.

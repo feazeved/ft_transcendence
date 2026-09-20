@@ -1,0 +1,17 @@
+.git
+
+# Backend: generated locally, not something to bake into the image —
+# collectstatic/media are meant to live in a volume at runtime.
+backend/staticfiles
+backend/media
+**/__pycache__
+**/*.pyc
+
+# Frontend: installed/built inside the image, not copied in from the host.
+frontend/node_modules
+frontend/dist
+frontend/coverage
+
+# Local-only, never relevant to a build.
+.env
+docker-compose.override.yml
