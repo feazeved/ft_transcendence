@@ -292,12 +292,8 @@ export function alreadyInvited(messages = [], { myPublicId, roomCode } = {}) {
 //
 // Being offline is deliberately NOT one of those noes. The server is happy to
 // store an invite for somebody who is away — they read it when they come back —
-// and `is_online` cannot be trusted to say who is away: it means "seen in the
-// last 5 minutes", and `last_seen_at` is only written when a presence connection
-// opens or closes, with no heartbeat in between. A friend who has had the app
-// open all evening reports offline. So the offline case is a warning next to a
-// live button, not a locked one; blocking it would break the invite for somebody
-// sitting in a lobby right now.
+// so a friend who is out gets one waiting for them rather than a button that
+// will not press. It is a warning next to a live button, not a locked one.
 //
 // There is always either a button or a line of text, so the panel never collapses
 // to nothing and the thread below it never jumps up the screen.
@@ -384,11 +380,26 @@ export function openChatSocket(handlers) {
 	return openSocket("/ws/chat/", handlers)
 }
 
+// The other half of the server's key expiry (TTL_SECONDS in presence.py): three
+// beats inside its window, so an open connection is never taken for a dead one.
+const HEARTBEAT_MS = 30000
+
 // Presence is a second, separate connection: being connected to it is what makes
 // you "online" to your friends (`PresenceConsumer` counts connections), and it is
 // what pushes their status to you. Nothing else in the app opens it.
+//
+// The handle is wrapped so that closing the socket stops the beating with it.
 export function openPresenceSocket(handlers) {
-	return openSocket("/ws/presence/", handlers)
+	const handle = openSocket("/ws/presence/", handlers)
+	const beat = setInterval(() => handle.send({ action: "ping" }), HEARTBEAT_MS)
+
+	return {
+		...handle,
+		close() {
+			clearInterval(beat)
+			handle.close()
+		},
+	}
 }
 
 // The clock on a bubble. 24-hour, as the design draws it, and it never throws on

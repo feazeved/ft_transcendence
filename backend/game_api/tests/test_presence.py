@@ -83,6 +83,19 @@ class PresenceConsumerTests(TransactionTestCase):
 		await alice_comm.disconnect()
 		await bob_comm.disconnect()
 
+	# The bug, end to end: being online has to end when the socket does.
+	async def test_the_socket_is_what_makes_you_online(self):
+		user = await sync_to_async(User.objects.create_user)(
+			username="alice", email="alice@example.com", password="x"
+		)
+		self.assertFalse(user.is_online)
+
+		communicator, _ = await _connect_as(user)
+		self.assertTrue(user.is_online)
+
+		await communicator.disconnect()
+		self.assertFalse(user.is_online)
+
 	async def test_a_non_friend_receives_nothing(self):
 		alice = await sync_to_async(User.objects.create_user)(
 			username="alice", email="alice@example.com", password="x"
@@ -224,3 +237,25 @@ class PresenceConnectionCountingTests(TransactionTestCase):
 		presence.register_connection(222)
 		self.assertEqual(presence.unregister_connection(111), 0)
 		self.assertEqual(presence.unregister_connection(222), 1)
+
+	# The expiry covers a backend that died; the heartbeat keeps an idle tab online.
+	def test_a_registered_connection_is_given_a_time_to_live(self):
+		presence.register_connection(12345)
+		self.assertGreater(presence._redis_client.ttl(presence._key(12345)), 0)
+
+	def test_a_beat_renews_a_live_connection(self):
+		presence.register_connection(12345)
+		presence._redis_client.expire(presence._key(12345), 5)
+		presence.touch(12345)
+		self.assertGreater(presence._redis_client.ttl(presence._key(12345)), 5)
+
+	def test_a_beat_from_nobody_does_not_invent_a_connection(self):
+		presence.touch(12345)
+		self.assertFalse(presence.is_online(12345))
+
+	def test_is_online_follows_the_count(self):
+		self.assertFalse(presence.is_online(12345))
+		presence.register_connection(12345)
+		self.assertTrue(presence.is_online(12345))
+		presence.unregister_connection(12345)
+		self.assertFalse(presence.is_online(12345))

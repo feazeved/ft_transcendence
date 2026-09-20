@@ -45,17 +45,13 @@ class PublicProfileSerializer(serializers.ModelSerializer):
 	def get_presence(self, user):
 		from . import consumers
 
-		# The place is asked for *first*, and it outranks `is_online`.
-		#
-		# `is_online` means "last_seen_at is under five minutes old", and
-		# `last_seen_at` is only written when a presence socket opens or closes —
-		# there is no heartbeat — so somebody who has been playing for ten
-		# minutes reports as offline. A connected seat in a live room is direct
-		# evidence to the contrary, and direct evidence wins.
+		# Offline first, then where. A seat row is written by the game socket and
+		# can outlive its person; the presence key expires, so it is asked first.
+		if not user.is_online:
+			return {"status": "offline", "room_code": None}
+
 		status, room_code = consumers.presence_state(user.pk)
-		if status != "online":
-			return {"status": status, "room_code": room_code}
-		return {"status": "online" if user.is_online else "offline", "room_code": None}
+		return {"status": status, "room_code": room_code}
 
 class UserDetailsSerializer(BaseUserDetailsSerializer):
 	avatar = serializers.ImageField(write_only=True, required=False, allow_null=True)
