@@ -28,7 +28,7 @@ from .serializers import (
 	LeaderboardEntrySerializer, MatchHistoryEntrySerializer, UserStatsSerializer, ChatMessageSerializer, ConversationSerializer,
 	TournamentCreateSerializer, TournamentDetailSerializer, TournamentListSerializer, LiveGameSerializer,
 )
-from .consumers import broadcast_game_update as _broadcast_game_update, broadcast_presence, leave_pending_game, notify_friendship_change, schedule_turn_expiry
+from .consumers import broadcast_game_update as _broadcast_game_update, broadcast_presence, leave_pending_game, log_event, notify_friendship_change, schedule_turn_expiry
 
 @ensure_csrf_cookie
 def csrf(request):
@@ -533,6 +533,10 @@ class GameViewSet(viewsets.GenericViewSet):
 		# game had no start time: the countdown never appeared, and the turn
 		# could not expire either, because the expiry gives up on a null.
 		game.save(update_fields=["state", "status", "turn_started_at"])
+
+		if game.tournament_id is not None:
+			log_event(game, f"Round {game.tournament_round} of {game.tournament.name}.")
+		log_event(game, "The game has started.")
 
 		# Hand the game to a watcher so a turn runs out even while everybody is
 		# waiting politely for the player who walked away.
