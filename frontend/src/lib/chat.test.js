@@ -9,6 +9,9 @@ import {
 	inviteRoomCode,
 	inviteText,
 	isInvite,
+	isLastMessageRead,
+	lastOwnMessageId,
+	markRead,
 	openThread,
 	receiveMessage,
 	showsChatDock,
@@ -179,6 +182,7 @@ describe("openThread", () => {
 			messages: [],
 			unread: 0,
 			loaded: false,
+			readUpTo: null,
 		})
 	})
 })
@@ -413,5 +417,53 @@ describe("tabs", () => {
 	it("takes a person back out when their thread opens or closes", () => {
 		expect(withoutTab(["daniel", "ines"], "daniel")).toEqual(["ines"])
 		expect(withoutTab([], "daniel")).toEqual([])
+	})
+})
+
+describe("read receipts", () => {
+	// One of theirs, then one of mine: the shape a receipt is about.
+	const conversation = () => {
+		let state = receiveMessage(emptyChat(), message({ id: 1 }), { myPublicId: ME, openWith: "ines" })
+		return receiveMessage(state, message({ id: 2, user: person("me", { public_id: ME }) }), {
+			myPublicId: ME,
+			openWith: "ines",
+		})
+	}
+
+	it("says nothing until a receipt arrives", () => {
+		expect(isLastMessageRead(conversation().threads.ines, ME)).toBe(false)
+	})
+
+	it("marks my last line read when they open the thread", () => {
+		const state = markRead(conversation(), 7)
+		expect(state.threads.ines.readUpTo).toBe(2)
+		expect(isLastMessageRead(state.threads.ines, ME)).toBe(true)
+	})
+
+	// The receipt covered what was there when it landed, and nothing after it.
+	it("does not cover a message sent after the receipt", () => {
+		let state = markRead(conversation(), 7)
+		state = receiveMessage(state, message({ id: 3, user: person("me", { public_id: ME }) }), {
+			myPublicId: ME,
+			openWith: "ines",
+		})
+		expect(isLastMessageRead(state.threads.ines, ME)).toBe(false)
+	})
+
+	it("is about my last line, not theirs", () => {
+		const state = markRead(conversation(), 7)
+		expect(lastOwnMessageId(state.threads.ines, ME)).toBe(2)
+		expect(lastOwnMessageId(state.threads.ines, "nobody")).toBeNull()
+	})
+
+	it("leaves a conversation it cannot find alone", () => {
+		const state = conversation()
+		expect(markRead(state, 999)).toBe(state)
+	})
+
+	it("has nothing to mark in an empty thread", () => {
+		const empty = { ...emptyChat(), threads: { ines: { conversationId: 7, messages: [], readUpTo: null } } }
+		expect(markRead(empty, 7)).toBe(empty)
+		expect(isLastMessageRead(empty.threads.ines, ME)).toBe(false)
 	})
 })
